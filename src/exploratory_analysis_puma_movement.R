@@ -14,7 +14,8 @@
 
 # Load packages
 if(!require(install.load)) install.packages('install.load'); library(install.load)
-install.load::install_load('raster', 'rgdal', 'adehabitatLT', 'GISTools', 'zoo', 'circular')
+install.load::install_load('raster', 'rgdal', 'adehabitatLT', 'GISTools', 'zoo', 
+  'circular')
 
 # Options
 
@@ -42,7 +43,8 @@ source('plot_google_source_code.r')
 setwd(datadir)
 
 # Load movement data
-mov.data <- read.table('jaguar_locations_f1e2_2018_02_d20.csv', header = T, sep = '\t', dec = ',')
+mov.data <- read.table('jaguar_locations_f1e2_2018_02_d20.csv', header = T,
+  sep = '\t', dec = ',')
 head(mov.data)
 
 # Load land use map
@@ -65,7 +67,8 @@ mov.data$Longitude[is.na(mov.data$Longitude)] <- 0
 # Transform data into a SpatialPointsDataFrame object
 mov.spdata <- SpatialPointsDataFrame(coords = mov.data[,5:4],
                                      data = mov.data[,c(1:3,6:ncol(mov.data))], 
-                                     proj4string = CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs'))
+                                     proj4string = CRS('+proj=longlat +ellps=WGS84 
+                                       +datum=WGS84 +no_defs'))
 
 # Reproject to Albers, Projection SAD69
 new.projection <- crs(map.fbds)@projargs
@@ -90,11 +93,13 @@ showclasses <- c('Água', 'Áreas antrópicas', 'Áreas edificadas', 'Floresta',
   
 plot(map.fbds, breaks = Mybreaks, col = Mycols, legend = F)
 plot(map.br, add = T)
-legend("bottomright", legend = showclasses, fill = Mycols, cex = 0.9, ncol = 1, bty = "n")
+legend("bottomright", legend = showclasses, fill = Mycols, cex = 0.9, ncol = 1,
+  bty = "n")
 north.arrow(2500000, 1800000, 50000, lab = 'N')
-scalebar(1000000, xy = c(-50000, 2800000), type = 'bar', divs = 4, label = c(0, 500, '1000 km'))
-graphics::text(coordinates(mov.spdata.albers)[1,1], coordinates(mov.spdata.albers)[1,2], 
-               labels = '*', cex = 3)
+scalebar(1000000, xy = c(-50000, 2800000), type = 'bar', divs = 4,
+  label = c(0, 500, '1000 km'))
+graphics::text(coordinates(mov.spdata.albers)[1,1],
+  coordinates(mov.spdata.albers)[1,2], labels = '*', cex = 3)
 if(exportFIG) dev.off() 
 
 #------------
@@ -155,16 +160,20 @@ if(exportFIG) {
   setwd(outdir)
   png('study_area_locations_google.png', width = 15, height = 15, units = 'cm', res = 300)
 }
+
 cols = c('yellow', 'red')[as.factor(mov.spdata.albers.vis$ID)]
 plot.google(mov.spdata.albers.vis, cex = 0.6, pcol = cols, lwd = 1)
 scalebar(10000, xy = c(980000, 1190000), type = 'bar', divs = 4, label = c(0, 5, '10 km'))
+
 if(exportFIG) dev.off()
 
 #------------
 # Proportion of locations vs land use
 mov.spdata.albers.vis$land_use <- extract(map.fbds, mov.spdata.albers.vis)
-mov.spdata.albers.vis$land_use <- factor(mov.spdata.albers.vis$land_use, levels = 1:4,
-                                         labels = c('water', 'antropic', 'urban', 'forest'))
+mov.spdata.albers.vis$land_use <- factor(mov.spdata.albers.vis$land_use, 
+  levels = 1:4,
+  labels = c('water', 'antropic', 'urban', 'forest'))
+
 table(mov.spdata.albers.vis$land_use)
 table(mov.spdata.albers.vis$land_use)/nrow(mov.spdata.albers.vis)
 
@@ -189,7 +198,12 @@ mov.traj.df <- ld(mov.traj)
 
 # Range of records, in days
 for(i in 1:length(mov.traj)) {
-  print(paste(attr(mov.traj[[i]], 'id'), ': ', max(mov.traj[[i]]$date) - min(mov.traj[[i]]$date), ' days', sep = ''))
+  print(
+    paste(
+      attr(mov.traj[[i]], 'id'), ': ', 
+      max(mov.traj[[i]]$date) - min(mov.traj[[i]]$date), ' days', sep = ''
+    )
+  )
 }
 
 # Regularity of monitoring
@@ -197,12 +211,14 @@ if(exportFIG) {
   setwd(outdir)
   png('period_monitoring.png', width = 15, height = 15, units = 'cm', res = 300)
 }
-plot(mov.traj.df$date, rep(0, nrow(mov.traj.df)), type = 'n', 
-     ylim = c(0.5, 2.5), #xlim = as.POSIXct(c('1/1/2015', '1/8/2016'), "%d/%m/%Y", tz = 'GMT'),
-     xlab = 'Data', ylab = 'Indivíduo', axes = F, 
-     main = 'Período de monitoramento')
-axis.POSIXct(1, at = seq(min(mov.traj.df$date), max(mov.traj.df$date), 'months'), format = "%m/%Y",
-             tick = T)
+plot(mov.traj.df$date, rep(0, nrow(mov.traj.df)), type = 'n', ylim = c(0.5, 2.5), 
+  #xlim = as.POSIXct(c('1/1/2015', '1/8/2016'), "%d/%m/%Y", tz = 'GMT'),
+  xlab = 'Data', ylab = 'Indivíduo', axes = F, 
+  main = 'Período de monitoramento')
+
+axis.POSIXct(1, at = seq(min(mov.traj.df$date), max(mov.traj.df$date), 'months'),
+  format = "%m/%Y", tick = T)
+
 axis(2, at = c(1, 2), labels = levels(mov.traj.df$Name), las = 2)
 box()
 grid(nx = NULL, ny = NA)
@@ -262,16 +278,22 @@ if(exportFIG) {
 par(mfrow = c(2,3), mar = c(3, 2, 2, 1) + 0.1, oma = c(0,3,0,0))
 for(i in 1:length(mov.traj)) {
   plot(mov.traj[i], xlab = '', ylab = '', 
-       main = paste(attr(mov.traj[[i]], 'id'), ': trajetória ', attr(mov.traj[[i]], 'burst'), 
-                    sep = ''))
+    main = paste(
+      attr(mov.traj[[i]], 'id'),': trajetória ', attr(mov.traj[[i]], 'burst'), 
+      sep = '')
+    )
+  
   if(i == 1) mtext('Trajetórias originais', side = 2, cex = 1.2, line = 2.5)
 }
 plot(0, 0, type = 'n', axes = F)
 
 for(i in 1:length(mov.traj.2)) {
   plot(mov.traj.2[i], xlab = '', ylab = '', 
-       main = paste(attr(mov.traj.2[[i]], 'id'), ': trajetória ', attr(mov.traj.2[[i]], 'burst'), 
-                    sep = ''))
+    main = paste(
+      attr(mov.traj.2[[i]], 'id'), ': trajetória ', attr(mov.traj.2[[i]], 'burst'), 
+                    sep = ''
+    )
+  )
   if(i == 1) mtext('Trajetórias separadas (12h)', side = 2, cex = 1.2, line = 2.5)
 }
 
@@ -281,10 +303,12 @@ if(exportFIG) dev.off()
 # Exercise: filter data each 4 hours and make them regular
 plotltr(mov.traj[1:2], "dt/3600")
 refda <- strptime("00:00", "%H:%M")
-mov.traj.3 <- setNA(mov.traj, refda, 1, units = "h") #place missing values in gaps (traj not regular yet)
+# place missing values in gaps (traj not regular yet)
+mov.traj.3 <- setNA(mov.traj, refda, 1, units = "h")
 plotltr(mov.traj.3[1:2], "dt/3600")
 mov.traj.3[[1]]
-mov.traj.3.reg <- sett0(mov.traj.3, refda, 1, units = "h") #regularizing trajectories for real
+#regularizing trajectories for real
+mov.traj.3.reg <- sett0(mov.traj.3, refda, 1, units = "h")
 plotltr(mov.traj.3.reg[1:2], "dt/3600")
 
 plot(mov.traj)
@@ -298,7 +322,8 @@ sum(dt.3 < 1.01 | dt.3 < 0.99, na.rm = T)/length(dt.3) # Proportion
 # Plot fix rate before and after regularization
 if(exportFIG) {
   setwd(outdir)
-  png('regularization_process_1h.png', width = 15, height = 15, units = 'cm', res = 300)
+  png('regularization_process_1h.png', width = 15, height = 15, units = 'cm',
+    res = 300)
 }
 
 par(mfrow = c(3,2), mar = c(3, 2, 2, 1) + 0.1, oma = c(3,3,0,0))
@@ -350,9 +375,13 @@ colnames(orig.xy) <- c("orig.x", "orig.y")
 #==================================
 # NOTE: figure out a more elegant way to incorporate rec function? 
 # Recalculating Ltraj
-mov.traj.fixed <- as.ltraj(xy = mov.traj.3.reg.fix[,c("xfill","yfill")], date=mov.traj.3.reg.fix$date, 
-                           id=mov.traj.3.reg.df$id, burst = mov.traj.3.reg.df$burst, typeII = T,
-                           infolocs = cbind(mov.traj.3.reg.df[,13:ncol(mov.traj.3.reg.df)], orig.xy))
+mov.traj.fixed <- as.ltraj(xy = mov.traj.3.reg.fix[,c("xfill","yfill")], 
+  date=mov.traj.3.reg.fix$date, 
+  id=mov.traj.3.reg.df$id, burst = mov.traj.3.reg.df$burst, typeII = T,
+  infolocs = cbind(mov.traj.3.reg.df[,13:ncol(mov.traj.3.reg.df)], orig.xy)
+)
+
+
 plot(mov.traj)
 plot(mov.traj.fixed)
 
@@ -393,21 +422,22 @@ for(i in 1:length(mov.traj)) {
 }
 mtext('Data', side = 1, outer = T, line = -29, cex = 1.2, at = 0.27)
 mtext('Data', side = 1, outer = T, line = -29, cex = 1.2, at = 0.77)
-mtext('Distância em relação\n ao ponto inicial (km)', side = 2, outer = T, line = 0.2, cex = 0.9, 
-      at = 0.85)
+mtext('Distância em relação\n ao ponto inicial (km)', side = 2, outer = T, 
+  line = 0.2, cex = 0.9, at = 0.85)
 
 for(i in 1:length(mov.traj)) {
   hist(mov.traj[[i]]$dist/1000, main = '', breaks = 20, xlab = '', ylab = '')
 }
+
 mtext('Deslocamento (km)', side = 1, outer = T, line = -15, cex = 1.2, at = 0.27)
 mtext('Deslocamento (km)', side = 1, outer = T, line = -15, cex = 1.2, at = 0.77)
 mtext('Frequência', side = 2, outer = T, line = 0.2, cex = 1.2, 
       at = 0.5)
 
 for(i in 1:length(mov.traj)) {
-  circular::rose.diag(mov.traj[[i]]$rel.angle[!is.na(mov.traj[[i]]$rel.angle)], bins=18, 
-                      prop=2.5, shrink = 1, units = 'degrees', control.circle = circle.control(lwd = 0),
-                      main = "")
+  circular::rose.diag(mov.traj[[i]]$rel.angle[!is.na(mov.traj[[i]]$rel.angle)],
+    bins=18, prop=2.5, shrink = 1, units = 'degrees', 
+    control.circle = circle.control(lwd = 0), main = "")
 }
 # for(i in 1:length(mov.traj)) {
 #   hist(mov.traj[[i]]$rel.angle)
