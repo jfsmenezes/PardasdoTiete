@@ -32,24 +32,30 @@ prepare <- function(d, maps, prob.train) {
       ) %>% 
       amt::random_steps() 
 
-    d2 <- amt::extract_covariates(d1, maps) %>% 
-      mutate(log_sl_ = log(sl_),
-             log_dist_water = log(dist_water+1.1),
-             log_dist_cities = log(dist_cities+1.1),
-             log_dist_roads = log(dist_roads+1.1),
-             disp = as.factor(dispersal.behavior),
-             tod = as.factor(tod_end_)) %>% 
-      dplyr::rename(landuse = FBDS_land_use_SP_sirgas_albers_canasat_7_pasture_8) %>% 
-      dplyr::mutate(landuse = ifelse(landuse == 3 | landuse == 6, 2, landuse),
-                    landuse = factor(landuse,
-                                     levels = c(1,2,4,5,7,8), 
-                                     labels = c('water', 'antropic', 'forest', 'natural',
-                                                'sugarcane', 'pasture')))
+    d2 <- amt::extract_covariates(d1, maps) %>%
+          rename(landuse = FBDS_land_use_SP_sirgas_albers_canasat_7_pasture_8) %>% 
+          mutate(landuse = ifelse(landuse == 3 | landuse == 6, 2, landuse))    %>%
+          mutate(landuse = factor(landuse, 
+                                  levels = c(1,2,4,5,7,8), 
+                                  labels = c('water', 'antropic', 'forest', 'natural','sugarcane', 'pasture')
+                                  )
+                ) %>%
+          mutate(log_sl_         = log(sl_),
+                 log_dist_water  = log(dist_water+1.1),
+                 log_dist_cities = log(dist_cities+1.1),
+                 log_dist_roads  = log(dist_roads+1.1),
+                 disp            = as.factor(dispersal.behavior),
+                 tod             = as.factor(tod_end_)
+          ) %>%
+          select(-FBDS_land_use_SP_sirgas_albers_canasat_7, - dispersal.behavior, -tod_end_)
 
-    d3 <- sample_each(d2, prop=0.8)
-    )
 
-    return(d3)
+    burst_in_sp <- as.data.frame(d2) %>% group_by(burst_) %>% summarize( valid = !any(is.na(landuse))) %>% pull(1)
+    
+    d3 <- filter( d2, burst_ %in% burst_in_sp)
+    d4 <- train_selector(d3, prop=prob.train)
+    print("preparation complete! \n")
+    return(d4)
   }
 
 # runner: function that takes a list of formulas o run ssf on, and separate the ones
@@ -69,7 +75,7 @@ is.in.formula <- function(formula,text) any(grepl(text,as.character(formula)))
 
 # filter_min_by_burst2: For some reason steps_by_burst gives an error of corrupted
 # grouped df. In stack overflow a user says package amt has fixed this bug
-# but it is only available in Linux. So I created my own function
+# but it is only available in Linux. So I created my own function.
 filter_min_n_burst2 <- function(track, min_n = 3) {
   bursts <- unique(track$burst_)
   bursts_length <- table(track$burst_)
@@ -79,8 +85,30 @@ filter_min_n_burst2 <- function(track, min_n = 3) {
 }
 
 
-# sample_each: selects a random subset of lines from a data.frame,
+# train_selector: selects a random subset of lines from a data.frame,
 # respecting that the subset has all levels of all factors.
+# A proportion can be specificied 
+train_selector <- function(data,prop=0.8) {
+  classes  <- lapply(data, class)
+  isfactor <- colnames(data)[ sapply(classes, function(x) "factor" %in% x) ]
+
+  split.factor <- split(data, interaction(data[isfactor]) )
+  sampled <- lapply(  split.factor , function(x) pull(sample_n(x,1),1) )
+  
+  selected <- do.call(c, sampled)
+
+  bneed     <- round(length(unique(data$burst_))*prop,0) - length(alllevels)
+
+  random  <- sample(data$burst_[!(data$burst_ %in% alllevels)], bneed )
+  complete <- c(selected, complete)
+
+  data$train <- data$burst_ %in% complete
+
+  return(data)
+}
+
+
+
 sample_each <- function(data,prop=0.8) {
   classes  <- lapply(data, class)
   isfactor <- sapply(classes, function(x) "factor" %in% x)
@@ -96,11 +124,11 @@ sample_each <- function(data,prop=0.8) {
       selected <- rbind(selected, temp[sample(1:nrow(temp),1),] )
 
     }}
-  selected <- unique(selected)
+  selected  <- unique(selected)
   remaining <- anti_join(data, selected)
-  nneed <- round(nrow(data)*0.8,0) - nrow(selected)
-  random <- remaining[ sample(1:nrow(remaining), nneed), ]
-  complete <- rbind(selected, random)
+  nneed     <- round(nrow(data)*0.8,0) - nrow(selected)
+  random    <- remaining[ sample(1:nrow(remaining), nneed), ]
+  complete  <- rbind(selected, random)
 
   complete <- data %>% nest_join(complete) %>% 
                        mutate(train = map(complete,nrow)>0) %>%
@@ -108,3 +136,12 @@ sample_each <- function(data,prop=0.8) {
 
   return(complete)
   }
+
+specialpredict <- function(model, newdata) {
+  formula <- update(model$formula, NULL ~ . - strata(step_id_) - 1)
+  organized <- model.matrix(formula, data= newdata)
+  stopifnot( names(coef(model)) == colnames(organized) ) 
+  linear.pred <- c( organized %*% coef(model) )
+  quality <- exp(linear.pred)/(1+exp(linear.pred))
+  return(quality)
+}
