@@ -61,7 +61,7 @@ prepare <- function(d, maps, prob.train) {
 # runner: function that takes a list of formulas o run ssf on, and separate the ones
 # models without dispersion behavior if there is the animal does not have this behavior
 runner <-  function(d, modelslist) {
-    if(!('dispersal' %in% d$dispersal.behavior)) {
+    if(!('dispersal' %in% d$disp)) {
         modelslist <- modelslist[!sapply(modelslist, is.in.formula, "disp")]
         }
     d <- d[d$train,]
