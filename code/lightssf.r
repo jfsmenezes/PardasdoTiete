@@ -35,7 +35,9 @@ library( dismo     )
 ### load acessory functions for data handling.
 # include functions is.in.formula, prepare, and runner
 source("./code/acessory functions.r")
-source("./code/modelslist.r")
+modelslist <- scan("./code/modelslist.r", what = "character", comment.char="#", sep="\n")
+modelslist <- lapply(modelslist, as.formula)
+
 
 ### Load mov.track (a.k.a. the locations)
 load("./movcleaned.RData")
