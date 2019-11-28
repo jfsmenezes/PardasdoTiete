@@ -50,11 +50,15 @@ prepare <- function(d, maps, prob.train) {
           select(-FBDS_land_use_SP_sirgas_albers_canasat_7, - dispersal.behavior, -tod_end_)
 
 
-    burst_in_sp <- as.data.frame(d2) %>% group_by(burst_) %>% summarize( valid = !any(is.na(landuse))) %>% pull(1)
+    burst_in_sp <- as.data.frame(d2) %>% 
+                   group_by(burst_) %>% 
+                   summarize( valid = all(!is.na(landuse))) %>% 
+                   filter(valid==TRUE) %>% 
+                   pull(1)
     
     d3 <- filter( d2, burst_ %in% burst_in_sp)
     d4 <- train_selector(d3, prop=prob.train)
-    print("preparation complete! \n")
+    print("preparation complete!")
     return(d4)
   }
 
@@ -97,9 +101,9 @@ train_selector <- function(data,prop=0.8) {
   
   selected <- do.call(c, sampled)
 
-  bneed     <- round(length(unique(data$burst_))*prop,0) - length(alllevels)
+  bneed     <- round(length(unique(data$burst_))*prop,0) - length(selected)
 
-  random  <- sample(data$burst_[!(data$burst_ %in% alllevels)], bneed )
+  random  <- sample(data$burst_[!(data$burst_ %in% selected)], bneed )
   complete <- c(selected, complete)
 
   data$train <- data$burst_ %in% complete
@@ -140,6 +144,10 @@ sample_each <- function(data,prop=0.8) {
 specialpredict <- function(model, newdata) {
   formula <- update(model$formula, NULL ~ . - strata(step_id_) - 1)
   organized <- model.matrix(formula, data= newdata)
+  organizedcols <-  colnames( organized)
+  if( ("dispdispersal" %in% organizedcols) && ("dispresidency" %in% organizedcols)) {
+    organized<- organized[,-match("dispdispersal", organizedcols)]
+  }
   stopifnot( names(coef(model)) == colnames(organized) ) 
   linear.pred <- c( organized %*% coef(model) )
   quality <- exp(linear.pred)/(1+exp(linear.pred))

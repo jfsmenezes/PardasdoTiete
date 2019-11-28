@@ -52,7 +52,7 @@ maps     <- stack(map.list)
 # uses prepare function of acessory functions 
 # note this is a nested tibble, with one dataset for each animal 
 prob.train = 0.8
-prepared <- mov.track %>% 
+storage <- mov.track %>% 
   nest(-name) %>% 
   mutate( trk = map(data, prepare, maps , prob.train) )
 
@@ -63,21 +63,31 @@ prepared <- mov.track %>%
 # In models we have a column fit, in each line is all the models for that individual
 # we flatten that structure using unnest.
 # Now we have one row for every model, with notations on individual and model name.
-fits <- prepared %>% mutate(fit = map(trk, runner, modelslist) )
+storage <- storage %>% mutate(fit = map(trk, runner, modelslist) )
 
 
-models <- fits %>% mutate(m.name = map(fit, names) )  %>% unnest(cols = c("m.name", "fit")) 
+storage <- storage %>% mutate(m.name = map(fit, names) )  %>% unnest(cols = c("m.name", "fit")) 
 
 ### Add AIC ###
 # (not comparable between non nested models)
-aicmodel <- models %>% mutate(aics = map_dbl(fit, ~ AIC(.x$model)))
+storage <- storage %>% mutate(aics = map_dbl(fit, ~ AIC(.x$model)))
 
 ### Calculate AUCs ###
 # TODO: fix strata error by calculating predicting probabilities for every step, assuming 
 # all steps are equally likely (following Muller & MacLehose, 2014)
-preds <- map2(aicmodel$fit[-3], aicmodel$trk[-3], ~ cbind(.y[!(.y$train),],prediction = specialpredict(.x$model, newdata=.y[!(.y$train),])))
+wrong<-numeric()
+for( a in 1:length(storage$fit)) {
+pred <- length(specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,]))
+wrong <-  c(wrong, nrow(storage$trk[[a]][!storage$trk[[a]]$train,]) != pred )
+}
+
+
+preds <- map2(aicmodel$fit, aicmodel$trk, ~ cbind(.y[!(.y$train),],prediction = specialpredict(.x$model, newdata=.y[!(.y$train),])))
 aucs  <- map_dbl(preds, ~ evaluate(.x$prediction[.x$case_], .x$prediction[!.x$case_])@auc)
 aucmodel <- cbind(aicmodel, aucs)
 
 
-test<- specialpredict(model =models$fit[[3]]$model,newdata= models$trk[[3]][!models$trk[[3]]$train,] )
+
+
+model = aicmodel$fit[[a]]$model
+newdata = aicmodel$trk[[a]][!aicmodel$trk[[a]]$train,]
