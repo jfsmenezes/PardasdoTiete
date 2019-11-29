@@ -18,7 +18,6 @@
 # From this object, it extract values from a list of stacks, 
 # and logaritimize or convert them in factors. 
 
-# TODO: solve dispersal.behavior and disp being equal
 prepare <- function(d, maps, prob.train) {
     d1  <- d %>% 
       amt::track_resample(rate = lubridate::hours(1), tolerance = lubridate::minutes(10)) %>%
@@ -65,15 +64,32 @@ prepare <- function(d, maps, prob.train) {
 # runner: function that takes a list of formulas o run ssf on, and separate the ones
 # models without dispersion behavior if there is the animal does not have this behavior
 runner <-  function(d, modelslist) {
-    if(length(unique(d$disp))<2) {
+    if(length(unique(d$disp))<2 ) {
         modelslist <- modelslist[!sapply(modelslist, is.in.formula, "disp")]
+        } else {
+          if( any( apply(table(d$step_id_, d$disp),1,prod) == 0 )) {
+            modelslist <- modelslist[!sapply(modelslist, is.in.formula, "disp")]
+          }
         }
     d <- d[d$train,]
-    runs <- map( modelslist, ~ fit_ssf(d, .x, model=T, iter.max=50) )
+    runs <- map( modelslist, ~ tryCatch(fit_ssf(d, .x, model=T, iter.max=100), error=convergencehandler ))
     names(runs) <- names(modelslist)
+    runs <- runs [!sapply(runs, is.null)]
     print("run complete")
     return(runs)
 }
+
+##convergence handler: Some of the created models, do not work on all individuals.
+## To keep the models on the individuals it does work, while not generating specific
+## handlers for every animals, I am creating a function the returns a NULL when there is
+## a convergence error, 
+convergencehandler <- function(x) {
+  if(x$message == "NA/NaN/Inf in foreign function call (arg 5)") {return(NULL)} else {
+    simpleError( paste("Non-convergence error. Original message follows:") )
+  }
+
+}
+
 
 # is.in.formula: function to detect if a certain character string is within a formula.
 is.in.formula <- function(formula,text) any(grepl(text,as.character(formula)))
@@ -153,4 +169,12 @@ specialpredict <- function(model, newdata) {
   linear.pred <- c( organized %*% coef(model) )
   quality <- exp(linear.pred)/(1+exp(linear.pred))
   return(quality)
+}
+
+auccalculator <-  function(ssf, trk) {
+  test <- trk %>% filter(!train)
+  preds <- specialpredict(ssf$model, test )
+  iscase <- pull(test,"case_")
+  evaluation <- evaluate( preds[iscase], preds[!iscase] )
+  return(evaluation@auc)
 }

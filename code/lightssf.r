@@ -36,8 +36,9 @@ library( dismo     )
 # include functions is.in.formula, prepare, and runner
 source("./code/acessory functions.r")
 modelslist <- scan("./code/modelslist.r", what = "character", comment.char="#", sep="\n")
+n.modelslist <- str_extract(modelslist, ".+?(?=\\=)") %>% str_trim()
 modelslist <- lapply(modelslist, as.formula)
-
+names(modelslist) <-  n.modelslist
 
 ### Load mov.track (a.k.a. the locations)
 load("./movcleaned.RData")
@@ -83,13 +84,22 @@ pred <- length(specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$
 wrong <-  c(wrong, nrow(storage$trk[[a]][!storage$trk[[a]]$train,]) != pred )
 }
 
-
-preds <- map2(aicmodel$fit, aicmodel$trk, ~ cbind(.y[!(.y$train),],prediction = specialpredict(.x$model, newdata=.y[!(.y$train),])))
-aucs  <- map_dbl(preds, ~ evaluate(.x$prediction[.x$case_], .x$prediction[!.x$case_])@auc)
-aucmodel <- cbind(aicmodel, aucs)
-
+preds <- storage %>% mutate( aucs = map2_dbl(fit, trk, auccalculator) )
 
 
 
 model = aicmodel$fit[[a]]$model
 newdata = aicmodel$trk[[a]][!aicmodel$trk[[a]]$train,]
+wrong<-numeric()
+for( a in 1:length(storage$fit)) {
+print(a)
+pred <- specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,])
+if( all(is.na(pred)) ) {break}
+
+}
+a=29
+any(is.na(storage$trk[[a]]))
+storage$trk[[a]]
+specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,])
+
+clogit( storage$trk[[29]], case_ ~ prop_forest_500m  + disp + prop_forest_500m:disp + log_dist_water + strata(step_id_))
