@@ -102,4 +102,6 @@ any(is.na(storage$trk[[a]]))
 storage$trk[[a]]
 specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,])
 
-clogit( storage$trk[[29]], case_ ~ prop_forest_500m  + disp + prop_forest_500m:disp + log_dist_water + strata(step_id_))
+bestmodels <- preds %>% group_by(name) %>% arrange(desc(aucs)) %>% slice(1) %>%
+              ungroup() %>% select(-data, -trk)
+#save(bestmodels, file="./data/derived/bestmodels.RData")
