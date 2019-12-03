@@ -15,11 +15,12 @@
 #         trimestal report for definition
 
 library(sf)
+library(dplyr)
 library(raster)
 library(gdalUtils)
 Sys.setenv(GDAL_DATA="C:\\Program Files\\QGIS 3.4\\share\\gdal")
 ### Base raster layer ###
-baseproj   <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs' 
+baseproj   <- "+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs" 
 
 
 studyarea  <- st_read("./maps/area_estudo/area_estudo_SIRGAS2000_UTM22S.shp")
@@ -27,26 +28,88 @@ studyarea  <- st_transform( studyarea, baseproj)
 bbox       <- st_bbox(studyarea)
 
 
-### FBDS 'proportion of forest' handle ###
+### Creating land use database ###
 
 # FBDS is a series of small maps each for each municipality. I am afraid it might be too much to hold
 # in memory with a single file as a single object. My solution all forest features in a geopackage
 # since I can update this format by adding one feature at a time. After that I can use gdal utils to
 # rasterize this features at 30 m, also without having put the vector data on R.
 
+adder <- function(muni.use, baseproj) { 
+    muni.shp <- st_read(muni.use, quiet = T)
+    muni.shp <- st_transform(muni.shp, crs = baseproj)
+    muni.shp <- muni.shp[ c(st_intersects(muni.shp, studyarea, sparse=F)), c("geometry", "CLASSE_USO") ]
+    if(nrow(muni.shp)>0) {    
+        st_write(muni.shp, dsn="./maps/FBDS/SP/forestmap.gpkg",update=T, quiet=T)
+    }
+
+}
 
 muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
 muni.use <- lapply(paste0(muni.folders, "/USO"), list.files, pattern="shp$", full.names = T)
 muni.use <- sapply(muni.use, "[[", 1) # the municipality of cubatão has two shapes. This take one for everyone.
 
-
-forest.selector <- function(muni.use, forest.name = "formação florestal", baseproj = baseproj) { 
-    muni.shp <- st_read(muni.use, quiet = T)
-    muni.shp <- st_transform(muni.shp, crs = baseproj)
-    muni.shp <- muni.shp[muni.shp$CLASSE_USO == forest.name,1:2]
-    st_write(muni.shp, dsn="./maps/FBDS/SP/forestmap.gpkg",update=T)
+pb <- txtProgressBar()
+for(a in 1:length(muni.use)) {
+    adder(muni.use[a], baseproj)
+    setTxtProgressBar(pb, a/length(muni.use))
 }
-lapply(muni.use,forest.selector)
+
+# I now execute the same code for river files, whose info is not contained in the FDBS use map
+
+adder.water <- function(muni.use, baseproj) { 
+    muni.shp <- st_read(muni.use, quiet = T)
+    if(nrow(muni.shp)==0) {return(NULL)} else{
+    
+        muni.shp <- st_transform(muni.shp, crs = baseproj)
+        muni.shp <- cbind(muni.shp[,"geometry"], CLASSE_USO = "água")   
+        muni.shp <- muni.shp[ c(st_intersects(muni.shp, studyarea, sparse=F)), c("geometry", "CLASSE_USO") ]
+        if(nrow(muni.shp)>0) {
+            st_write(muni.shp, dsn="./maps/FBDS/SP/forestmap.gpkg",update=T, quiet=T)
+        }
+    }
+}
+
+muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
+muni.water <- lapply(paste0(muni.folders, "/HIDROGRAFIA"), list.files, pattern="shp$", full.names = T)
+muni.water <- unlist(muni.water)
+muni.water <- muni.water[!grepl("MASSAS", muni.water)] # remove water bodies because they are included in land use maps
+
+pb <- txtProgressBar()
+for(a in 1:length(muni.water)) {
+    adder.water(muni.water[a], baseproj)
+    setTxtProgressBar(pb, a/length(muni.water))
+}
+
+# A similar principle is used for the canasat map
+cana <- st_read(".\\maps\\canasat\\Cana2013_WGS_SP.shp") %>% 
+        st_transform(baseproj) %>% 
+        filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
+        mutate(CLASSE_USO = "cana-de-açucar") %>%
+        select(geometry, CLASSE_USO) %>%
+        st_write(dsn="./maps/FBDS/SP/forestmap.gpkg",update=T)
+
+# Next, we add pasture
+pasto <- st_read(".\\maps\\Pasture\\pasture_2018.shp") %>% 
+        st_transform(baseproj) %>% 
+        filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
+        mutate(CLASSE_USO = "pastagem") %>%
+        select(geometry, CLASSE_USO) %>%
+        st_write(dsn="./maps/FBDS/SP/forestmap.gpkg",update=T)
+
+
+# Finally adding road
+road <- st_read(".\\maps\\Roads\\gROADS-v1-americas.shp") %>% 
+        st_transform(baseproj) %>%
+        filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
+        mutate(CLASSE_USO = "estradas") %>%
+        dplyr::select(geometry, CLASSE_USO) %>%
+        st_write(dsn="./maps/FBDS/SP/forestmap.gpkg",update=T)
+
+
+# TODO: Make gdalrasterize commands specific for each land use 
+# TODO: Find what is the best way to calculate proportion of forest (grass?, postgis?)
+
 forestmap <- gdalUtils::gdal_rasterize(src_datasource = "./maps/FBDS/SP/forestmap.gpkg", 
                                        dst_filename = "./maps/FBDS/SP/forestmap.tif", burn = 1, init =0,
                                        output_Raster = T, tr= c(5,5), te = bbox)
