@@ -15,13 +15,12 @@
 #         is dispersing or resident, as determined by a previous ARIMA.
 #         2) A series of maps represeting the environmental variables
 
+
 # Output: a list of models representing the best model for each individual (n=8)
 #         step selection function. 
 
 
 # Questions:
-# 2) Is it a problema that my model has variables related to movement (cosine of direction etc)
-# considering i won't have those when predicting?
 # 3) How do I combine the models for each individuals, especially if they point to different variables.
 
 ### Load packages ###

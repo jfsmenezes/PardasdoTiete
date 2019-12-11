@@ -18,7 +18,12 @@ library(sf)
 library(dplyr)
 library(raster)
 library(gdalUtils)
+library(RSAGA)
+library(parallel)
+
 Sys.setenv(GDAL_DATA="C:\\Program Files\\QGIS 3.4\\share\\gdal")
+env <- rsaga.env(cores= detectCores()-1 )
+
 ### Base raster layer ###
 baseproj   <- "+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs" 
 
@@ -86,7 +91,7 @@ cana <- st_read(".\\maps\\canasat\\Cana2013_WGS_SP.shp") %>%
         st_transform(baseproj) %>% 
         filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
         mutate(CLASSE_USO = "cana-de-açucar") %>%
-        select(geometry, CLASSE_USO) %>%
+        dplyr::select(geometry, CLASSE_USO) %>%
         st_write(dsn="./maps/FBDS/SP/forestmap.gpkg",update=T)
 
 # Next, we add pasture
@@ -94,7 +99,7 @@ pasto <- st_read(".\\maps\\Pasture\\pasture_2018.shp") %>%
         st_transform(baseproj) %>% 
         filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
         mutate(CLASSE_USO = "pastagem") %>%
-        select(geometry, CLASSE_USO) %>%
+        dplyr::select(geometry, CLASSE_USO) %>%
         st_write(dsn="./maps/FBDS/SP/forestmap.gpkg",update=T)
 
 
@@ -107,33 +112,93 @@ road <- st_read(".\\maps\\Roads\\gROADS-v1-americas.shp") %>%
         st_write(dsn="./maps/FBDS/SP/forestmap.gpkg",update=T)
 
 
-# TODO: Make gdalrasterize commands specific for each land use 
+# Create a land use map using gdalrasterize commands specific for each land use 
+  # This assume a implicit order in which the FBDS is overwritten by information from
+  # canasat or from the pasture dataset. I opt for this system because these two maps 
+  # are more precise. 
+
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "landuse_studyarea.tif",
+                           where = "CLASSE_USO='água'", 
+                           burn = 1, 
+                           init =0,
+                           tr= c(5,5), 
+                           te = bbox 
+                           )
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "landuse_studyarea.tif",
+                           where = "CLASSE_USO IN ('área antropizada', 'área edificada', 'silvicultura')",
+                           burn=2
+                           )
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "landuse_studyarea.tif",
+                           where = "CLASSE_USO='formação florestal'",
+                           burn=4
+                           )
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "landuse_studyarea.tif",
+                           where = "CLASSE_USO='formação não florestal'",
+                           burn=5
+                           )
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "landuse_studyarea.tif",
+                           where = "CLASSE_USO='cana-de-açucar'",
+                           burn=7
+                           )   
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "landuse_studyarea.tif",
+                           where = "CLASSE_USO='pastagem'",
+                           burn=8
+                           )                           
+
+# Create a distance to road and distance to road and water by creating a landuse map with those 
+# characteristics and then using gdal_proximity to extract distances
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "./maps/water.tif",
+                           where = "CLASSE_USO='água'", 
+                           burn = 1, 
+                           init =0,
+                           tr= c(5,5), 
+                           te = bbox 
+                           )
+shell("py3_env && gdal_proximity ./maps/water.tif ./maps/waterprox.tif -distunits GEO")
+
+gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg", 
+                           dst_filename = "./maps/estradas.tif",
+                           where = "CLASSE_USO='estradas'", 
+                           burn = 1, 
+                           init =0,
+                           tr= c(5,5), 
+                           te = bbox 
+                           )
+shell("py3_env && gdal_proximity ./maps/estradas.tif ./maps/roadprox.tif -distunits GEO")
+
+
+
 # TODO: Find what is the best way to calculate proportion of forest (grass?, postgis?)
 
-forestmap <- gdalUtils::gdal_rasterize(src_datasource = "./maps/FBDS/SP/forestmap.gpkg", 
-                                       dst_filename = "./maps/FBDS/SP/forestmap.tif", burn = 1, init =0,
-                                       output_Raster = T, tr= c(5,5), te = bbox)
-                                       )
+landuse <- raster("landuse_studyarea.tif")
 
-w200   <- focalWeight(forestmap, 200, "circle")
-w1000  <- focalWeight(forestmap, 1000, "circle")
-w5000  <- focalWeight(forestmap, 5000, "circle")
-w10000 <- focalWeight(forestmap, 10000, "circle")
+w100  <- focalWeight(landuse,  100, "circle")
+w500  <- focalWeight(landuse,  500, "circle")
+w2500 <- focalWeight(landuse, 2500, "circle")
+w5000 <- focalWeight(landuse, 5000, "circle")
 
 
-forestprop200   <- focal(forestmap, w200,   filename = "./maps/FBDS/SP/forestprop200.tif"  )
-forestprop1000  <- focal(forestmap, w1000,  filename = "./maps/FBDS/SP/forestprop1000.tif" )
-forestprop5000  <- focal(forestmap, w5000,  filename = "./maps/FBDS/SP/forestprop5000.tif" )
-forestprop10000 <- focal(forestmap, w10000, filename = "./maps/FBDS/SP/forestprop10000.tif")
+forestprop100  <- focal(landuse==1, fun=mean, w100,  filename = "./maps/FBDS/SP/forestprop100.tif"  )
+forestprop500  <- focal(landuse==1, fun=mean, w500,  filename = "./maps/FBDS/SP/forestprop500.tif"  )
+forestprop2500 <- focal(landuse==1, fun=mean, w2500, filename = "./maps/FBDS/SP/forestprop2500.tif" )
+forestprop5000 <- focal(landuse==1, fun=mean, w5000, filename = "./maps/FBDS/SP/forestprop5000.tif" )
 
-gdalUtils::gdalwarp("./maps/FBDS/SP/forestprop200.tif"  , "./maps/FBDS/SP/forestprop200r.tif"  , r="average", tr= c(30,30) )
-gdalUtils::gdalwarp("./maps/FBDS/SP/forestprop1000.tif" , "./maps/FBDS/SP/forestprop1000r.tif" , r="average", tr= c(30,30) )
-gdalUtils::gdalwarp("./maps/FBDS/SP/forestprop5000.tif" , "./maps/FBDS/SP/forestprop5000r.tif" , r="average", tr= c(30,30) )
-gdalUtils::gdalwarp("./maps/FBDS/SP/forestprop10000.tif", "./maps/FBDS/SP/forestprop10000r.tif", r="average", tr= c(30,30) )
+sugarprop100  <- focal(landuse==7, fun=mean, w100,   filename = "./maps/FBDS/SP/sugarprop100.tif"  )
+sugarprop500  <- focal(landuse==7, fun=mean, w500,   filename = "./maps/FBDS/SP/sugarprop500.tif"  )
+sugarprop2500 <- focal(landuse==7, fun=mean, w2500,  filename = "./maps/FBDS/SP/sugarprop2500.tif" )
+sugarprop5000 <- focal(landuse==7, fun=mean, w5000,  filename = "./maps/FBDS/SP/sugarprop5000.tif" )
 
-
-
-
+cattleprop100  <- focal(landuse==8, fun=mean, w100,  filename = "./maps/FBDS/SP/cattleprop100.tif" )
+cattleprop500  <- focal(landuse==8, fun=mean, w500,  filename = "./maps/FBDS/SP/cattleprop500.tif" )
+cattleprop2500 <- focal(landuse==8, fun=mean, w2500, filename = "./maps/FBDS/SP/cattleprop2500.tif")
+cattleprop5000 <- focal(landuse==8, fun=mean, w5000, filename = "./maps/FBDS/SP/cattleprop5000.tif")
 
 
 ### FBDS 'distance to water' handle ###
