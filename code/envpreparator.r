@@ -173,80 +173,72 @@ gdalUtils::gdal_rasterize( src = "./maps/FBDS/SP/forestmap.gpkg",
                            )
 shell("py3_env && gdal_proximity ./maps/estradas.tif ./maps/roadprox.tif -distunits GEO")
 
+## Decrease resolution to run focal analysis
+
+system("C:\\OSGeo4W64\\bin\\gdalwarp.exe ./maps/landuse_studyarea.tif ./maps/landuse_studyarea30m.tif -tr 30 30 -r \"near\" ")
+
+### Run proportion calculations in SAGA.####
+
+ # Focal statistics in the raster package are very slow so I opted to use
+ # a C-based GIS software. GRASS was proving to be a hell to configure, 
+ # likewise for GDAL. GDAL is also very limited. In the end SAGA proved 
+ # to be the best outcome.
+binaryzer <- function(landuse, class, filename,env) {
+  rsaga.import.gdal(landuse,env = env)
+  landuse.saga <- sub("tif$","sgrd",landuse)
+  rsaga.geoprocessor("grid_tools",15,
+                     list(INPUT = landuse.saga, RESULT = filename, METHOD=0, OLD= class, NEW =1, OTHERS = 0, OTHEROPT=""),
+                     env=env,display.command = T,check.parameters = F)
+}
+
+binaryzer("./maps/landuse_studyarea30m.tif" ,class = 4, filename = "./maps/onlyforest", env=env)
+binaryzer("./maps/landuse_studyarea30m.tif" ,class = 7, filename = "./maps/onlysugar",  env=env)
+binaryzer("./maps/landuse_studyarea30m.tif" ,class = 8, filename = "./maps/onlypasture",env=env)
+
+# Execute a low-pass filter (a.k.a. a mean of the values). This is matematically equivalent 
+# to calculate the proportions of 1-cells in the radius. In more biological terms this is equivalent
+# calculte the proportion of sugarcane, of forest and of cattle on the region.
+# Radius is given in number of pixels, so I simply calculated np = m/res, with res being the resolution
+# in m. 
+
+rsaga.filter.simple("./maps/onlyforest.sgrd", "./maps/onlyforest100m.sgrd",  method = "smooth", radius = 100/30, env=env)
+rsaga.filter.simple("./maps/onlyforest.sgrd", "./maps/onlyforest500m.sgrd",  method = "smooth", radius = 500/30, env=env)
+rsaga.filter.simple("./maps/onlyforest.sgrd", "./maps/onlyforest2500m.sgrd", method = "smooth", radius = 2500/30, env=env)
+rsaga.filter.simple("./maps/onlyforest.sgrd", "./maps/onlyforest5000m.sgrd", method = "smooth", radius = 5000/30, env=env)
 
 
-# TODO: Find what is the best way to calculate proportion of forest (grass?, postgis?)
 
-landuse <- raster("landuse_studyarea.tif")
-
-w100  <- focalWeight(landuse,  100, "circle")
-w500  <- focalWeight(landuse,  500, "circle")
-w2500 <- focalWeight(landuse, 2500, "circle")
-w5000 <- focalWeight(landuse, 5000, "circle")
+rsaga.filter.simple("./maps/onlysugar.sgrd", "./maps/onlysugar100m.sgrd",  method = "smooth", radius = 100/30, env=env)
+rsaga.filter.simple("./maps/onlysugar.sgrd", "./maps/onlysugar500m.sgrd",  method = "smooth", radius = 500/30, env=env)
+rsaga.filter.simple("./maps/onlysugar.sgrd", "./maps/onlysugar2500m.sgrd", method = "smooth", radius = 2500/30, env=env)
+rsaga.filter.simple("./maps/onlysugar.sgrd", "./maps/onlysugar5000m.sgrd", method = "smooth", radius = 5000/30, env=env)
 
 
-forestprop100  <- focal(landuse==1, fun=mean, w100,  filename = "./maps/FBDS/SP/forestprop100.tif"  )
-forestprop500  <- focal(landuse==1, fun=mean, w500,  filename = "./maps/FBDS/SP/forestprop500.tif"  )
-forestprop2500 <- focal(landuse==1, fun=mean, w2500, filename = "./maps/FBDS/SP/forestprop2500.tif" )
-forestprop5000 <- focal(landuse==1, fun=mean, w5000, filename = "./maps/FBDS/SP/forestprop5000.tif" )
-
-sugarprop100  <- focal(landuse==7, fun=mean, w100,   filename = "./maps/FBDS/SP/sugarprop100.tif"  )
-sugarprop500  <- focal(landuse==7, fun=mean, w500,   filename = "./maps/FBDS/SP/sugarprop500.tif"  )
-sugarprop2500 <- focal(landuse==7, fun=mean, w2500,  filename = "./maps/FBDS/SP/sugarprop2500.tif" )
-sugarprop5000 <- focal(landuse==7, fun=mean, w5000,  filename = "./maps/FBDS/SP/sugarprop5000.tif" )
-
-cattleprop100  <- focal(landuse==8, fun=mean, w100,  filename = "./maps/FBDS/SP/cattleprop100.tif" )
-cattleprop500  <- focal(landuse==8, fun=mean, w500,  filename = "./maps/FBDS/SP/cattleprop500.tif" )
-cattleprop2500 <- focal(landuse==8, fun=mean, w2500, filename = "./maps/FBDS/SP/cattleprop2500.tif")
-cattleprop5000 <- focal(landuse==8, fun=mean, w5000, filename = "./maps/FBDS/SP/cattleprop5000.tif")
+rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle100m.sgrd",  method = "smooth", radius = 100/30, env=env)
+rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle500m.sgrd",  method = "smooth", radius = 500/30, env=env)
+rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle2500m.sgrd", method = "smooth", radius = 2500/30, env=env)
+rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle5000m.sgrd", method = "smooth", radius = 5000/30, env=env)
 
 
-### FBDS 'distance to water' handle ###
+### Reproject previous maps to 30m ###
+system("C:\\OSGeo4W64\\bin\\gdalwarp.exe ./maps/waterprox.tif ./maps/waterprox30m.tif -tr 30 30 -r \"bilinear\" ")
+system("C:\\OSGeo4W64\\bin\\gdalwarp.exe ./maps/roadprox.tif ./maps/roadprox30m.tif -tr 30 30 -r \"bilinear\" ")
 
-# We have the same problem we had with proportion of forest. It is not possible to handle all the municipalities file in memory.
-# However, this time rasterizing might not be a good strategy, since it will imply we will treat rivers as having being 30 m wide.
-# So instead I one distance for each municipality and then take the mean. This way I can still process the vector in memory.
-
-muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
-muni.water <-  lapply(paste0(muni.folders, "/HIDROGRAFIA"), list.files, pattern="shp$", full.names = T)
-muni.water <-  unlist(muni.water)
-muni.water <-  muni.water[!grepl("NASCENTES",muni.water)][1:2] # removes water springs, since they are already part of the river shapefile. check that
-
-# Create the first raster, using the extent of the study area, already projected to albers. 
-# The original file also has to be projected.
-projected <- tempfile()
-gdalUtils::ogr2ogr(muni.water[1], projected, spat = bbox, t_srs = baseproj) 
-watermap <- gdalUtils::gdal_rasterize( src_datasource = projected, 
-                                       dst_filename = "./maps/FBDS/SP/watermap.tif", burn = 1, init =0,
-                                       output_Raster = T, tr= c(5,5), te = bbox
-                                       )
-
-for( a in 2:length(muni.water)) {
-    gdalUtils::gdal_rasterize(src_datasource = muni.water[a], dst_filename = "./maps/FBDS/SP/watermap.tif", burn = 1)
- }
-
-watermap  <- raster("./maps/FBDS/SP/watermap.tif")
-waterdist <- distance(waterdist, filename = "./maps/FBDS/SP/waterdist.tif" )
-
-  
-
-
-### FBDS 'distance to cities' handle ###
-
-muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
-muni.city <-  lapply(paste0(muni.folders, "/USO"), list.files, pattern="shp$", full.names = T)
-muni.city <-  unlist(muni.city)
-
-projected <- tempfile(fileext=".gpkg")
-gdalUtils::ogr2ogr(muni.city[1], projected, spat = bbox, t_srs = baseproj, where ="CLASSE_USO IN ('área antropizada', 'área edificada') ")
-citymap <- gdalUtils::gdal_rasterize( src_datasource = projected, 
-                                       dst_filename = "./maps/FBDS/SP/citymap.tif", burn = 1, init =0,
-                                       output_Raster = T, tr= c(5,5), te = bbox
-                                       )
-for( a in 2:length(muni.city)) {
-    gdalUtils::gdal_rasterize(src_datasource = muni.city[a], dst_filename = "./maps/FBDS/SP/watermap.tif", burn = 1)
- }
-
-citymap  <- raster("./maps/FBDS/SP/citymap.tif")
-cityist <- distance(citydist, filename = "./maps/FBDS/SP/citydist.tif" )
-
+### Build final 
+maps <- stack(
+    "./maps/landuse_studyarea30m.tif",
+    "./maps/waterprox30m.tif",
+    "./maps/roadprox30m.tif",
+    "./maps/onlyforest100m.sgrd",
+    "./maps/onlyforest500m.sgrd",
+    "./maps/onlyforest2500m.sgrd",
+    "./maps/onlyforest5000m.sgrd",
+    "./maps/onlysugar100m.sgrd", 
+    "./maps/onlysugar500m.sgrd", 
+    "./maps/onlysugar2500m.sgrd",
+    "./maps/onlysugar5000m.sgrd",
+    "./maps/onlycattle100m.sgrd", 
+    "./maps/onlycattle500m.sgrd", 
+    "./maps/onlycattle2500m.sgrd",
+    "./maps/onlycattle5000m.sgrd"
+     )
