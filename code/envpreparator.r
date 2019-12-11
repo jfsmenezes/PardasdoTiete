@@ -5,7 +5,7 @@
 
 # Intent: This code creates the environment maps required by lightssf.r to run 
 #         the stepselection functions. it assumes data from the FBDS, Canasat, Pastagens.org 
-#         and roads have been download. It replaces much of the calculation done by Bernardo on
+#         and roads have been download in Maps folder. It replaces much of the calculation done by Bernardo on
 #         GRASS. I am recreating this data mostly because I forgot to download the maps from the 
 #         CENAP before I left.
 
