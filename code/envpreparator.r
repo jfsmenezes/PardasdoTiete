@@ -214,6 +214,7 @@ rsaga.filter.simple("./maps/onlysugar.sgrd", "./maps/onlysugar2500m.sgrd", metho
 rsaga.filter.simple("./maps/onlysugar.sgrd", "./maps/onlysugar5000m.sgrd", method = "smooth", radius = 5000/30, env=env)
 
 
+
 rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle100m.sgrd",  method = "smooth", radius = 100/30, env=env)
 rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle500m.sgrd",  method = "smooth", radius = 500/30, env=env)
 rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle2500m.sgrd", method = "smooth", radius = 2500/30, env=env)
@@ -224,8 +225,8 @@ rsaga.filter.simple("./maps/onlycattle.sgrd", "./maps/onlycattle5000m.sgrd", met
 system("C:\\OSGeo4W64\\bin\\gdalwarp.exe ./maps/waterprox.tif ./maps/waterprox30m.tif -tr 30 30 -r \"bilinear\" ")
 system("C:\\OSGeo4W64\\bin\\gdalwarp.exe ./maps/roadprox.tif ./maps/roadprox30m.tif -tr 30 30 -r \"bilinear\" ")
 
-### Build final 
-maps <- stack(
+### Build final map stack and save on pointer (R object in RData)
+predmaps <- stack(
     "./maps/landuse_studyarea30m.tif",
     "./maps/waterprox30m.tif",
     "./maps/roadprox30m.tif",
@@ -242,3 +243,4 @@ maps <- stack(
     "./maps/onlycattle2500m.sgrd",
     "./maps/onlycattle5000m.sgrd"
      )
+save(predmaps, filename = "maps.RData")

@@ -43,7 +43,6 @@ names(modelslist) <-  n.modelslist
 load("./movcleaned.RData")
 
 
-
 ### Load maps ###
 ## TODO: add map sent by Jefferson (once he does one that is ok.)
 map.list <- list.files('./data/rasters/', pattern = 'tif', full.names = T)
