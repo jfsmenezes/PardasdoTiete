@@ -243,4 +243,4 @@ predmaps <- stack(
     "./maps/onlycattle2500m.sgrd",
     "./maps/onlycattle5000m.sgrd"
      )
-save(predmaps, filename = "maps.RData")
+save(predmaps, filename = paste0(finalfolder, "./maps.RData")

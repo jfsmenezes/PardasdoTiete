@@ -41,7 +41,7 @@ names(modelslist) <-  n.modelslist
 
 ### Load mov.track (a.k.a. the locations)
 load("./movcleaned.RData")
-
+load("./maps/observedstack.RData")
 
 ### Load maps ###
 ## TODO: add map sent by Jefferson (once he does one that is ok.)

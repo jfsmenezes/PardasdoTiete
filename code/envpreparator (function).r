@@ -1,4 +1,5 @@
 #' ---
+#' 
 #' title: 'Environmental variable calculat'
 #' author: Jorge Menezes    - CENAP/ICMBio
 #' ---
@@ -16,7 +17,7 @@
 #         trimestal report for definition
 
 
-envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", res=30 ) {
+envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", finalrdata, res=30, overwrite.gb = TRUE) {
 
 library(sf)
 library(dplyr)
@@ -25,8 +26,9 @@ library(gdalUtils)
 library(RSAGA)
 library(parallel)
 
-Sys.setenv(GDAL_DATA="C:\\Program Files\\QGIS 3.4\\share\\gdal")
-env <- rsaga.env(cores= detectCores()-1 )
+Sys.setenv(GDAL_DATA="C:\\Program Files\\QGIS 3.10\\share\\gdal")
+Sys.setenv(PROJ_LIB ="C:\\Program Files\\QGIS 3.10\\share\\proj")
+env <- rsaga.env()
 
 ### Base raster layer ###
 baseproj   <- "+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs" 
@@ -42,33 +44,38 @@ bbox       <- st_bbox(studyarea)
 # in memory with a single file as a single object. My solution all forest features in a geopackage
 # since I can update this format by adding one feature at a time. After that I can use gdal utils to
 # rasterize this features at 30 m, also without having put the vector data on R.
+
+
+
 landusebase <- paste0(tempdir,"/forestmap.gpkg")
 
+if(file.exists(landusebase) && overwrite.gb | !file.exists(landusebase)) {
+
+    muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
+    muni.use <- lapply(paste0(muni.folders, "/USO"), list.files, pattern="shp$", full.names = T)
+    muni.use <- sapply(muni.use, "[[", 1) # the municipality of cubatão has two shapes. This take one for everyone.
+
+    pb <- txtProgressBar()
+    for(a in 1:length(muni.use)) {
+        adder(muni.use[a],  studyarea, baseproj, geofile= landusebase)
+        setTxtProgressBar(pb, a/length(muni.use))
+    }
+
+    # I now execute the same code for river files, whose info is not contained in the FDBS use map
+
+    muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
+    muni.water <- lapply(paste0(muni.folders, "/HIDROGRAFIA"), list.files, pattern="shp$", full.names = T)
+    muni.water <- unlist(muni.water)
+    muni.water <- muni.water[!grepl("MASSAS", muni.water)] # remove water bodies because they are included in land use maps
+
+    pb <- txtProgressBar()
+    for(a in 1:length(muni.water)) {
+        adder.water(muni.water[a], studyarea, baseproj, geofile=landusebase)
+        setTxtProgressBar(pb, a/length(muni.water))
+    }
 
 
-muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
-muni.use <- lapply(paste0(muni.folders, "/USO"), list.files, pattern="shp$", full.names = T)
-muni.use <- sapply(muni.use, "[[", 1) # the municipality of cubatão has two shapes. This take one for everyone.
-
-pb <- txtProgressBar()
-for(a in 1:length(muni.use)) {
-    adder(muni.use[a], baseproj, geofile= landusebase)
-    setTxtProgressBar(pb, a/length(muni.use))
 }
-
-# I now execute the same code for river files, whose info is not contained in the FDBS use map
-
-muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
-muni.water <- lapply(paste0(muni.folders, "/HIDROGRAFIA"), list.files, pattern="shp$", full.names = T)
-muni.water <- unlist(muni.water)
-muni.water <- muni.water[!grepl("MASSAS", muni.water)] # remove water bodies because they are included in land use maps
-
-pb <- txtProgressBar()
-for(a in 1:length(muni.water)) {
-    adder.water(muni.water[a], baseproj, geofile=landusebase)
-    setTxtProgressBar(pb, a/length(muni.water))
-}
-
 # A similar principle is used for the canasat map
 cana <- st_read(".\\maps\\canasat\\Cana2013_WGS_SP.shp") %>% 
         st_transform(baseproj) %>% 
@@ -109,7 +116,8 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            burn = 1, 
                            init =0,
                            tr= rep(res,2), 
-                           te = bbox 
+                           te = bbox,
+                            
                            )
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = landuseraster,
@@ -167,6 +175,16 @@ gdalUtils::gdal_rasterize( src = landusebase,
 command <- paste("py3_env && gdal_proximity", roadmap, roadproxmap,"-distunits GEO")
 shell(command)
 
+# Applies Log to these maps using gdal_calc
+log_dist_water <- paste0(tempdir,"/log_dist_water.sdat")
+log_dist_roads <-  paste0(tempdir,"/log_dist_roads.sdat")
+
+
+rsaga.import.gdal(waterproxmap, env=env)
+rsaga.import.gdal(roadproxmap,  env=env)
+rsaga.grid.calculus( sub(".tif","", waterproxmap), log_dist_water,formula="log(a)")
+rsaga.grid.calculus( sub(".tif","", roadproxmap),  log_dist_roads, formula="log(a)")
+
 ### Run proportion calculations in SAGA.####
 
  # Focal statistics in the raster package are very slow so I opted to use
@@ -174,9 +192,9 @@ shell(command)
  # likewise for GDAL. GDAL is also very limited. In the end SAGA proved 
  # to be the best outcome.
 
-onlyforest  <- paste0(tempdir,"./maps/onlyforest", )
-onlysugar   <- paste0(tempdir,"./maps/onlysugar",  )
-onlypasture <- paste0(tempdir,"./maps/onlypasture" )
+onlyforest  <- paste0(tempdir,"/onlyforest" )
+onlysugar   <- paste0(tempdir,"/onlysugar"  )
+onlypasture <- paste0(tempdir,"/onlypasture" )
 
 
 
@@ -190,65 +208,109 @@ binaryzer(landuseraster ,class = 8, filename = onlypasture ,env=env)
 # Radius is given in number of pixels, so I simply calculated np = m/res, with res being the resolution
 # in m. 
 
-onlyforest100m   <-   paste0(finalfolder, "/onlyforest100m.sgrd")
-onlyforest500m   <-   paste0(finalfolder, "/onlyforest500m.sgrd")
-onlyforest2500m  <-   paste0(finalfolder, "/onlyforest2500m.sgrd")
-onlyforest5000m  <-   paste0(finalfolder, "/onlyforest5000m.sgrd")
-onlysugar100m    <-   paste0(finalfolder, "/onlysugar100m.sgrd")  
-onlysugar500m    <-   paste0(finalfolder, "/onlysugar500m.sgrd")  
-onlysugar2500m   <-   paste0(finalfolder, "/onlysugar2500m.sgrd") 
-onlysugar5000m   <-   paste0(finalfolder, "/onlysugar5000m.sgrd") 
-onlycattle100m   <-   paste0(finalfolder, "/onlycattle100m.sgrd")
-onlycattle500m   <-   paste0(finalfolder, "/onlycattle500m.sgrd")
-onlycattle2500m  <-   paste0(finalfolder, "/onlycattle2500m.sgrd")
-onlycattle5000m  <-   paste0(finalfolder, "/onlycattle5000m.sgrd")
+prop_forest_100m     <-   paste0(finalfolder, "/prop_forest_100m.sgrd")
+prop_forest_500m     <-   paste0(finalfolder, "/prop_forest_500m.sgrd")
+prop_forest_2500m    <-   paste0(finalfolder, "/prop_forest_2500m.sgrd")
+prop_forest_5000m    <-   paste0(finalfolder, "/prop_forest_5000m.sgrd")
+prop_sugarcane_100m  <-   paste0(finalfolder, "/prop_sugarcane_100m.sgrd")  
+prop_sugarcane_500m  <-   paste0(finalfolder, "/prop_sugarcane_500m.sgrd")  
+prop_sugarcane_2500m <-   paste0(finalfolder, "/prop_sugarcane_2500m.sgrd") 
+prop_sugarcane_5000m <-   paste0(finalfolder, "/prop_sugarcane_5000m.sgrd") 
+prop_pasture_100m    <-   paste0(finalfolder, "/prop_pasture_100m.sgrd")
+prop_pasture_500m    <-   paste0(finalfolder, "/prop_pasture_500m.sgrd")
+prop_pasture_2500m   <-   paste0(finalfolder, "/prop_pasture_2500m.sgrd")
+prop_pasture_5000m   <-   paste0(finalfolder, "/prop_pasture_5000m.sgrd")
 
 
 
-rsaga.filter.simple(onlyforest, onlyforest100m  , method = "smooth", radius = round(100/res) , env=env)
-rsaga.filter.simple(onlyforest, onlyforest500m  , method = "smooth", radius = round(500/res) , env=env)
-rsaga.filter.simple(onlyforest, onlyforest2500m , method = "smooth", radius = round(2500/res), env=env)
-rsaga.filter.simple(onlyforest, onlyforest5000m , method = "smooth", radius = round(5000/res), env=env)
+rsaga.filter.simple(onlyforest, prop_forest_100m  , method = "smooth", radius = ceiling(100/res) , env=env)
+rsaga.filter.simple(onlyforest, prop_forest_500m  , method = "smooth", radius = ceiling(500/res) , env=env)
+rsaga.filter.simple(onlyforest, prop_forest_2500m , method = "smooth", radius = ceiling(2500/res), env=env)
+rsaga.filter.simple(onlyforest, prop_forest_5000m , method = "smooth", radius = ceiling(5000/res), env=env)
 
 
 
-rsaga.filter.simple(onlysugar, onlysugar100m  , method = "smooth", radius = round(100/res) , env=env)
-rsaga.filter.simple(onlysugar, onlysugar500m  , method = "smooth", radius = round(500/res) , env=env)
-rsaga.filter.simple(onlysugar, onlysugar2500m , method = "smooth", radius = round(2500/res), env=env)
-rsaga.filter.simple(onlysugar, onlysugar5000m , method = "smooth", radius = round(5000/res), env=env)
+rsaga.filter.simple(onlysugar, prop_sugarcane_100m  , method = "smooth", radius = ceiling(100/res) , env=env)
+rsaga.filter.simple(onlysugar, prop_sugarcane_500m  , method = "smooth", radius = ceiling(500/res) , env=env)
+rsaga.filter.simple(onlysugar, prop_sugarcane_2500m , method = "smooth", radius = ceiling(2500/res), env=env)
+rsaga.filter.simple(onlysugar, prop_sugarcane_5000m , method = "smooth", radius = ceiling(5000/res), env=env)
 
  
 
-rsaga.filter.simple(onlycattle, onlycattle100m  , method = "smooth", radius = round(100/res) , env=env)
-rsaga.filter.simple(onlycattle, onlycattle500m  , method = "smooth", radius = round(500/res) , env=env)
-rsaga.filter.simple(onlycattle, onlycattle2500m , method = "smooth", radius = round(2500/res), env=env)
-rsaga.filter.simple(onlycattle, onlycattle5000m , method = "smooth", radius = round(5000/res), env=env)
+rsaga.filter.simple(onlypasture, prop_pasture_100m   , method = "smooth", radius = ceiling(100/res) , env=env)
+rsaga.filter.simple(onlypasture, prop_pasture_500m   , method = "smooth", radius = ceiling(500/res) , env=env)
+rsaga.filter.simple(onlypasture, prop_pasture_2500m  , method = "smooth", radius = ceiling(2500/res), env=env)
+rsaga.filter.simple(onlypasture, prop_pasture_5000m  , method = "smooth", radius = ceiling(5000/res), env=env)
+
+prop_forest_100m     <-   paste0(finalfolder, "/prop_forest_100m.sdat")
+prop_forest_500m     <-   paste0(finalfolder, "/prop_forest_500m.sdat")
+prop_forest_2500m    <-   paste0(finalfolder, "/prop_forest_2500m.sdat")
+prop_forest_5000m    <-   paste0(finalfolder, "/prop_forest_5000m.sdat")
+prop_sugarcane_100m  <-   paste0(finalfolder, "/prop_sugarcane_100m.sdat")
+prop_sugarcane_500m  <-   paste0(finalfolder, "/prop_sugarcane_500m.sdat")
+prop_sugarcane_2500m <-   paste0(finalfolder, "/prop_sugarcane_2500m.sdat")
+prop_sugarcane_5000m <-   paste0(finalfolder, "/prop_sugarcane_5000m.sdat")
+prop_pasture_100m    <-   paste0(finalfolder, "/prop_pasture_100m.sdat")
+prop_pasture_500m    <-   paste0(finalfolder, "/prop_pasture_500m.sdat")
+prop_pasture_2500m   <-   paste0(finalfolder, "/prop_pasture_2500m.sdat")
+prop_pasture_5000m   <-   paste0(finalfolder, "/prop_pasture_5000m.sdat")
+
+# Adding a dispresidency map on the end, in case we want to consider
+# different effects
+init(prop_forest_100m, fun=function(x) rep(1,x), filename = paste0(finalfolder,"/dispresidency.sdat"))
+dispdispersal <- raster(paste0(finalfolder,"/dispresidency.sdat"))
+dispresidency <- raster(paste0(finalfolder,"/dispresidency.sdat"))
+
+# Convert landuseraster to .sdat format so all files in the stack
+# are RSAGA compatible
+rsaga.import.gdal(landuseraster, env=env)
 
 
 mapstack <- stack(
-    landuseraster,
-    waterproxmap,
-    roadproxmap,
-    onlyforest100m ,
-    onlyforest500m ,
-    onlyforest2500m,
-    onlyforest5000m,
-    onlysugar100m  ,
-    onlysugar500m  ,
-    onlysugar2500m ,
-    onlysugar5000m ,
-    onlycattle100m ,
-    onlycattle500m ,
-    onlycattle2500m,
-    onlycattle5000m
+    sub(".tif",".sdat", landuseraster),
+    dispdispersal,
+    dispresidency,
+    log_dist_water,
+    log_dist_roads,
+    prop_forest_100m     ,
+    prop_forest_500m     ,
+    prop_forest_2500m    ,
+    prop_forest_5000m    ,
+    prop_sugarcane_100m  ,
+    prop_sugarcane_500m  ,
+    prop_sugarcane_2500m ,
+    prop_sugarcane_5000m ,
+    prop_pasture_100m    ,
+    prop_pasture_500m    ,
+    prop_pasture_2500m   ,
+    prop_pasture_5000m  
 )
-save(mapstack, file = paste0(finalfolder, "maps.RData"))
+names(mapstack) = c(
+    "landuse",
+    "dispdispersal",
+    "dispresidency",
+    "log_dist_water",
+    "log_dist_roads",
+    "prop_forest_100m"     ,
+    "prop_forest_500m"     ,
+    "prop_forest_2500m"    ,
+    "prop_forest_5000m"    ,
+    "prop_sugarcane_100m"  ,
+    "prop_sugarcane_500m"  ,
+    "prop_sugarcane_2500m" ,
+    "prop_sugarcane_5000m" ,
+    "prop_pasture_100m"    ,
+    "prop_pasture_500m"    ,
+    "prop_pasture_2500m"   ,
+    "prop_pasture_5000m"  
+)
 
-
+save(mapstack, file = paste0(finalfolder, "/",finalrdata))
+return(finalrdata)
 
 }
 
-adder <- function(muni.use, baseproj, geofile = "./maps/FBDS/SP/forestmap.gpkg") { 
+adder <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP/forestmap.gpkg") { 
     muni.shp <- st_read(muni.use, quiet = T)
     muni.shp <- st_transform(muni.shp, crs = baseproj)
     muni.shp <- muni.shp[ c(st_intersects(muni.shp, studyarea, sparse=F)), c("geometry", "CLASSE_USO") ]
@@ -257,7 +319,7 @@ adder <- function(muni.use, baseproj, geofile = "./maps/FBDS/SP/forestmap.gpkg")
     }
 
 }
-adder.water <- function(muni.use, baseproj, geofile = "./maps/FBDS/SP/forestmap.gpkg") { 
+adder.water <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP/forestmap.gpkg") { 
     muni.shp <- st_read(muni.use, quiet = T)
     if(nrow(muni.shp)==0) {return(NULL)} else{
     
