@@ -23,6 +23,9 @@
 # Questions:
 # 3) How do I combine the models for each individuals, especially if they point to different variables.
 
+ssfer <- function(datafolder,mapfolder, outfolder) {
+  
+
 ### Load packages ###
 library( lubridate )
 library( tidyverse )
@@ -40,13 +43,13 @@ modelslist <- lapply(modelslist, as.formula)
 names(modelslist) <-  n.modelslist
 
 ### Load mov.track (a.k.a. the locations)
-load("./movcleaned.RData")
-load("./maps/observedstack.RData")
+load(paste0(datafolder, "/movcleaned.RData"))
+load(paste0(mapfolder, "/observedstack.RData"))
 
 ### Load maps ###
 ## TODO: add map sent by Jefferson (once he does one that is ok.)
-map.list <- list.files('./data/rasters/', pattern = 'tif', full.names = T)
-maps     <- stack(map.list)
+#map.list <- list.files('./data/rasters/', pattern = 'tif', full.names = T)
+#maps     <- stack(map.list)
 
 
 ### Separe individuals and prepare each one separately ###
@@ -102,4 +105,6 @@ specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,
 
 bestmodels <- preds %>% group_by(name) %>% arrange(desc(aucs)) %>% slice(1) %>%
               ungroup() %>% select(-data, -trk)
-#save(bestmodels, file="./data/derived/bestmodels.RData")
+save(bestmodels, file=paste0(outfolder, "/bestmodels.RData") )
+
+}

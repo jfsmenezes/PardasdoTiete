@@ -19,6 +19,12 @@
 ## Output: An RData file with an object mov.track.rsp of class track.xyt and with a column 
 ## containing "dispersal" or "residencency" behavior categorization.
 
+
+
+
+HMMfitter  <- function(infile, outfolder, mus = c(0.5, 1, 2, 4), sigmas=  c(0.5, 1, 2, 3),
+                                          thetas = c(0, pi/4, pi/2, 0) , kappas= c(0.1, 1, 5, 2) ) {
+
 ## Load dependencies
 library(sf)
 library(amt)
@@ -26,7 +32,7 @@ library(fitHMM)
 library(lubridate)
 
 ## Load location file
-fixes.geo <- st_read("./data/locations/pardas_tiete_all_individuals.gpkg",layer=fixes)
+fixes.geo <- st_read(infile)
 
 ## Ensure timestamp is understood as dates
 fixes.geo <- fixes.geo %>% mutate_at('timestamp', ymd_hms)
@@ -72,12 +78,8 @@ hmm.data <- mov.track.rsp %>%
 # to be a residence status.
 # This may require input to validate that new iterations will have the same state as dispersal
 
-mu1        <- c(0.5, 1, 2, 4)          # step mean (two parameters: one for each state)
-sigma1     <- c(0.5, 1, 2, 3)       # step SD
-stepPar1   <- c(mu1, sigma1)
-angleMean1 <- c(0, pi/4, pi/2, 0) # angle mean
-kappa1     <- c(0.1, 1, 5, 2) # angle concentration
-anglePar1  <- c(angleMean1, kappa1)
+stepPar1   <- c(mus, sigmas)
+anglePar1  <- c(thetas, kappas)
 
 m5 <- fitHMM(data = hmm.data, nbStates = 4, stepPar0 = stepPar1, 
              anglePar0 = anglePar1, formula = ~1)
@@ -92,7 +94,7 @@ mov.track <- mov.track.rsp %>%
   mutate(state = as.factor(ifelse(viterbi(m5) %in% dispstate, 'dispersal', 'residency'))) %>%
   mutate(sl_  = amt::step_lengths(.)/1000 )
 
-save(mov.track, file= "movcleaned.RData")
-
-
+save(mov.track, file= paste0(outfolder,"/movcleaned.RData")
+print("complete Hidden Markov Chain sucessfully")
+}
 
