@@ -160,7 +160,7 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            tr= rep(res,2), 
                            te = bbox 
                            )
-command <- paste("py3_env && gdal_proximity", watermap, waterproxmap,"-distunits GEO")
+command <- paste("py3_env && gdal_proximity", shQuote(watermap), shQuote(waterproxmap),"-distunits GEO")
 shell(command)
 
 gdalUtils::gdal_rasterize( src = landusebase, 
@@ -172,7 +172,7 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            te = bbox 
                            )
 
-command <- paste("py3_env && gdal_proximity", roadmap, roadproxmap,"-distunits GEO")
+command <- paste("py3_env && gdal_proximity", shQuote(roadmap), shQuote(roadproxmap) ,"-distunits GEO")
 shell(command)
 
 # Applies Log to these maps using gdal_calc

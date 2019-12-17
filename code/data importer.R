@@ -25,12 +25,7 @@ data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs
     library(tidyverse)
     library(lubridate)
     library(sf)
-
-
-    rawfolder <- "./raw/data before 15.12.19"
-    tempdir <- "./maps/testing"
-    finalfolder <- "./maps/testing"
-    res <- 5000
+    library(readxl)
     if(is.null(crs)) {
         crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
     }
@@ -38,25 +33,28 @@ data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs
     meta.data <- read.csv2(paste0(rawfolder,"/meta_data.csv"),stringsAsFactors = F)
 
     ### Load all csv files in folder.
-    files2read <- list.files(path = rawfolder, pattern = "pardas_tiete_",full.names=T)#"./data/locations/pardas_tiete_.*.csv")
-    fix.frames <- lapply(files2read, read.csv, stringsAsFactors = F)
+    files2read <- list.files(path = rawfolder, pattern = "Pardas_do_Tiete_",full.names=T)#"./data/locations/pardas_tiete_.*.csv")
+    fix.frames <- lapply(files2read, read_excel, sheet=1)
     #for debug
     #fix.frames <- lapply(fix.frames, function(x) x[sample(1:nrow(x), round(nrow(x)/10),0), ] )
 
+
+
+
+
     ###Select relevant columns
-    fix.frames <- lapply(fix.frames, function(x) select(x, Tag_ID, UTC_Date, UTC_Time, Latitude, Longitude, Name, Sex))
+    fix.frames <- lapply(fix.frames, function(x) select(x, Tag_ID, timestamp, Latitude, Longitude))
 
 
     ### Combine all individuals in a data.frame.
     fixes <- do.call(rbind, fix.frames)
 
-    ### Use lubridate to generate valid POSIXct
-    fixes$timestamp <- as.POSIXct(ymd(fixes$UTC_Date) + hms(fixes$UTC_Time))
+
 
     ### Use a left join with meta.data to find releasedates and eliminate animals from it.
     # Also arrange by animal and then in cronological order, and eliminate duplicate rows.
     fixes <- fixes %>% 
-            left_join(meta.data[,c("Tag_ID","release.date.utc")], by="Tag_ID") %>%
+            left_join(meta.data[,c("Tag_ID","release.date.utc","Name")], by="Tag_ID") %>%
             mutate(release.date.utc = as.POSIXct(ymd_hms(release.date.utc))) %>%
             filter( timestamp >= release.date.utc, Latitude > -40) %>%
             arrange(Tag_ID, timestamp) %>%
@@ -70,7 +68,7 @@ data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs
                 st_transform(crs=crs) %>%
                 mutate(Longitude  = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) 
                 
-    st_write(fixes.geo, dsn=paste0(gpkgfolder,"/pardas_tiete_all_individuals.gpkg")
+    st_write(fixes.geo, dsn=paste0(gpkgfolder,"/pardas_tiete_all_individuals.gpkg"))
 
     ### creates the maps for extracting ssf values             
     st_buffer(fixes.geo, 20000) %>% 

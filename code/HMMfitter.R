@@ -21,15 +21,16 @@
 
 
 
-
 HMMfitter  <- function(infile, outfolder, mus = c(0.5, 1, 2, 4), sigmas=  c(0.5, 1, 2, 3),
                                           thetas = c(0, pi/4, pi/2, 0) , kappas= c(0.1, 1, 5, 2) ) {
 
 ## Load dependencies
+library(dplyr)
 library(sf)
 library(amt)
-library(fitHMM)
+library(moveHMM)
 library(lubridate)
+source("./code/acessory functions.r")
 
 ## Load location file
 fixes.geo <- st_read(infile)
@@ -40,15 +41,15 @@ fixes.geo <- fixes.geo %>% mutate_at('timestamp', ymd_hms)
 
 # Create move track object to allow resampling and creating a regular track
 mov.track <- mk_track(fixes.geo, .x = "Longitude", .y = "Latitude", .t = timestamp, 
-                      crs = st_crs(fixes.geo),
-                      ID, name, species, sex)
+                      crs = CRS(st_crs(fixes.geo)[[2]]),
+                      Tag_ID, Name)
 
 ## Execute resampling per individual
 # Since track.xyt objects cannot be used with group_by(), we used nest() and map() to repeat
 # process for every jaguar
-preparer <-  function(x) { x %>% track_resample(rate = hours(24), tolerance = hours(12)) %>% filter_min_n_burst(min_n = 3)}
-mov.track.rsp <- mov.track.rsp %>% 
-                 nest(-name) %>%
+preparer <-  function(x) { x %>% track_resample(rate = hours(24), tolerance = hours(12)) %>% filter_min_n_burst2(min_n = 3)}
+mov.track.rsp <- mov.track %>% 
+                 nest(-Name) %>%
                  mutate(data.rsp = map(data, preparer) ) %>%
                  unnest(data.rsp) %>% 
                  mutate(hour = t_ %>% format('%H') %>% as.factor)
@@ -56,18 +57,20 @@ mov.track.rsp <- mov.track.rsp %>%
 ## Add jaguar name to burst_ variable so we can use bursts can be uniquely identified in the dataset
 # (Althought this information is not used in the rest of the script)
 mov.track.rsp <- mov.track.rsp %>%
-  mutate(brst = paste0(name, burst_))
+  mutate(brst = paste0(Name, burst_))
 
 ## Change coordinates for numberical stability(?) in the HMM. 
 mov.track.rsp <- mov.track.rsp %>% 
   mutate(
     x = x_/1000,
     y = y_/1000,
-    ID = name
+    ID = Name
   )
 
 ## Convert to fitHMM format 
-hmm.data <- mov.track.rsp %>% 
+hmm.data <- mov.track.rsp %>%
+  arrange(Name,t_) %>%
+  dplyr::select(ID,x,y) %>%
   as.data.frame %>% 
   prepData(type='UTM', coordNames = c('x', 'y'))
 
@@ -86,15 +89,15 @@ m5 <- fitHMM(data = hmm.data, nbStates = 4, stepPar0 = stepPar1,
 
 ## Ask user to input state to be considered dispersal
 plot(m5)
-dispstate <- readline("What states should we consider dispersal? (if there more than one state separate by commas)")
+dispstate <- readline("What states should we consider dispersal? (if there more than one state separate by commas) \n")
 dispstate <- as.numeric( strsplit(dispstate,",")[[1]] )
 
 ## create final object with locations and dispersal data
 mov.track <- mov.track.rsp %>% 
   mutate(state = as.factor(ifelse(viterbi(m5) %in% dispstate, 'dispersal', 'residency'))) %>%
-  mutate(sl_  = amt::step_lengths(.)/1000 )
+  mutate(sl_  = amt::step_lengths(mk_track(., .x = x_, .y = y_, .t = t_, crs = CRS(st_crs(fixes.geo)[[2]])))/1000 )
 
-save(mov.track, file= paste0(outfolder,"/movcleaned.RData")
+save(mov.track, file= paste0(outfolder,"/movcleaned.RData"))
 print("complete Hidden Markov Chain sucessfully")
 }
 

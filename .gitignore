@@ -1,5 +1,4 @@
-/data/*
-/maps/*
-/presentations/*
-*.RData
-*.tif
+*
+!.r
+!.R
+!*/

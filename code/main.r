@@ -29,11 +29,11 @@ hasmodels     <- file.exists(paste0(experiment.folder, "/data derived/bestmodels
 hasHMMdata    <- file.exists(paste0(experiment.folder, "/data derived/movcleaned.RData"))
 hasgpkg       <- file.exists(paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"))
 
-if(!hasgpkg) {
-    data.importer(rawfolder = "./raw/data before 15.12.19", 
+if(!hasgpkg) { 
+    data.importer(rawfolder = "./experiment001/data derived/modifiedlocs", 
                   tempdir = paste0(experiment.folder,"/maps derived/observedstack"),
                   finalfolder = paste0(experiment.folder,"/maps derived/observedstack"),
-                  gpkgfolder = paste0(experiment.folder, "/data derived")
+                  gpkgfolder = paste0(experiment.folder, "/data derived"),
                   res = res 
                   )
 }
