@@ -24,14 +24,6 @@
 HMMfitter  <- function(infile, outfolder, mus = c(0.5, 1, 2, 4), sigmas=  c(0.5, 1, 2, 3),
                                           thetas = c(0, pi/4, pi/2, 0) , kappas= c(0.1, 1, 5, 2) ) {
 
-## Load dependencies
-library(dplyr)
-library(sf)
-library(amt)
-library(moveHMM)
-library(lubridate)
-source("./code/acessory functions.r")
-
 ## Load location file
 fixes.geo <- st_read(infile)
 
@@ -95,7 +87,7 @@ dispstate <- as.numeric( strsplit(dispstate,",")[[1]] )
 ## create final object with locations and dispersal data
 mov.track <- mov.track.rsp %>% 
   mutate(state = as.factor(ifelse(viterbi(m5) %in% dispstate, 'dispersal', 'residency'))) %>%
-  mutate(sl_  = amt::step_lengths(mk_track(., .x = x_, .y = y_, .t = t_, crs = CRS(st_crs(fixes.geo)[[2]])))/1000 )
+  make_track(.x = x_, .y=y_, .t=t_, Tag_ID, Name, burst_, brst, state)
 
 save(mov.track, file= paste0(outfolder,"/movcleaned.RData"))
 print("complete Hidden Markov Chain sucessfully")

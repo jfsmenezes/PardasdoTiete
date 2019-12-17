@@ -12,17 +12,34 @@
 ## eventually, a set of reserves desings.
 
 
-## First check for the presence of files in the current experiment folder.
+# Load dependencies
+
+library(raster) 
+library(RSAGA)
+library(gdalUtils)
+library(tidyverse)
+library(readxl)
+library(sf)
+library(parallel)
+library(amt)
+library(dismo)
+
+
 source("./code/data importer.r")
 source("./code/envpreparator (function).r")
 source("./code/HMMfitter.r")
 source("./code/lightssf.r")
 source("./code/predictor.r")
+source("./code/acessory functions.r")
+
+
 
 
 experiment.folder <- "./experiment 001"
 res<-5000
 
+
+## First check for the presence of files in the current experiment folder.
 hasprediction <- file.exists(paste0(experiment.folder,"/maps derived/qualitypredictions/qualityexpmean.sdat"))
 hasstudystack <- list.files(paste0(experiment.folder,"/maps derived/studyarea/"), pattern="RData") > 0
 hasmodels     <- file.exists(paste0(experiment.folder, "/data derived/bestmodels.RData"))

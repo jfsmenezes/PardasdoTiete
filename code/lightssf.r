@@ -26,13 +26,6 @@
 ssfer <- function(datafolder,mapfolder, outfolder) {
   
 
-### Load packages ###
-library( lubridate )
-library( tidyverse )
-library( raster    )
-library( amt       )
-library( dismo     )
-
 
 ### load acessory functions for data handling.
 # include functions is.in.formula, prepare, and runner
@@ -57,7 +50,7 @@ load(paste0(mapfolder, "/observedstack.RData"))
 # note this is a nested tibble, with one dataset for each animal 
 prob.train = 0.8
 storage <- mov.track %>% 
-  nest(-name) %>% 
+  nest(-Name) %>% 
   mutate( trk = map(data, prepare, maps , prob.train) )
 
 

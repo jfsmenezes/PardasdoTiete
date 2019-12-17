@@ -2,10 +2,6 @@
 ### the study area in a prediction map
 
 predictor <- function(datafolder, mapsfolder,outfolder) {
-
-library(raster)
-library(RSAGA)
-library(parallel)
 # set SAGA to use all but one available cores
 #env <- rsaga.env(cores = detectCores() - 1)
 env <- rsaga.env()

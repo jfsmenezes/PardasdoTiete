@@ -22,10 +22,6 @@
 
 data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs =NULL) {
     ### Loading dependencies
-    library(tidyverse)
-    library(lubridate)
-    library(sf)
-    library(readxl)
     if(is.null(crs)) {
         crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
     }

@@ -19,13 +19,6 @@
 
 envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", finalrdata, res=30, overwrite.gb = TRUE) {
 
-library(sf)
-library(dplyr)
-library(raster) 
-library(gdalUtils)
-library(RSAGA)
-library(parallel)
-
 Sys.setenv(GDAL_DATA="C:\\Program Files\\QGIS 3.10\\share\\gdal")
 Sys.setenv(PROJ_LIB ="C:\\Program Files\\QGIS 3.10\\share\\proj")
 env <- rsaga.env()
