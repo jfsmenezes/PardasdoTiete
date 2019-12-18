@@ -39,7 +39,7 @@ data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs
 
 
     ###Select relevant columns
-    fix.frames <- lapply(fix.frames, function(x) select(x, Tag_ID, timestamp, Latitude, Longitude))
+    fix.frames <- lapply(fix.frames, function(x) x[,c( "ID", "timestamp", "Latitude", "Longitude")] )
 
 
     ### Combine all individuals in a data.frame.
@@ -50,12 +50,12 @@ data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs
     ### Use a left join with meta.data to find releasedates and eliminate animals from it.
     # Also arrange by animal and then in cronological order, and eliminate duplicate rows.
     fixes <- fixes %>% 
-            left_join(meta.data[,c("Tag_ID","release.date.utc","Name")], by="Tag_ID") %>%
-            mutate(release.date.utc = as.POSIXct(ymd_hms(release.date.utc))) %>%
+            left_join(meta.data[,c("ID","release.date.utc","Name")], by="ID") %>%
+            mutate(release.date.utc = as.POSIXct(strptime(release.date.utc,format="%d/%m/%Y %H:%M"))) %>%
             filter( timestamp >= release.date.utc, Latitude > -40) %>%
-            arrange(Tag_ID, timestamp) %>%
+            arrange(ID, timestamp) %>%
             distinct() %>%
-            select( - release.date.utc)
+            dplyr::select( - release.date.utc)
 
 
 

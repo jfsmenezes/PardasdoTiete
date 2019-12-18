@@ -51,7 +51,7 @@ load(paste0(mapfolder, "/observedstack.RData"))
 prob.train = 0.8
 storage <- mov.track %>% 
   nest(-Name) %>% 
-  mutate( trk = map(data, prepare, maps , prob.train) )
+  mutate( trk = map(data, prepare, mapstack , prob.train) )
 
 
 ### Running models ###

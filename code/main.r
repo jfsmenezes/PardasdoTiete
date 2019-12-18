@@ -14,15 +14,18 @@
 
 # Load dependencies
 
-library(raster) 
-library(RSAGA)
-library(gdalUtils)
 library(tidyverse)
+library(lubridate)
 library(readxl)
 library(sf)
 library(parallel)
 library(amt)
+library(moveHMM)
 library(dismo)
+library(raster) 
+library(RSAGA)
+library(gdalUtils)
+
 
 
 source("./code/data importer.r")
@@ -47,7 +50,7 @@ hasHMMdata    <- file.exists(paste0(experiment.folder, "/data derived/movcleaned
 hasgpkg       <- file.exists(paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"))
 
 if(!hasgpkg) { 
-    data.importer(rawfolder = "./experiment001/data derived/modifiedlocs", 
+    data.importer(rawfolder = "./experiment 001/data derived/modifiedlocs", 
                   tempdir = paste0(experiment.folder,"/maps derived/observedstack"),
                   finalfolder = paste0(experiment.folder,"/maps derived/observedstack"),
                   gpkgfolder = paste0(experiment.folder, "/data derived"),
