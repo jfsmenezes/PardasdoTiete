@@ -1,6 +1,6 @@
 #' ---
 #' 
-#' title: 'Environmental variable calculat'
+#' title: 'Environmental variable calculator'
 #' author: Jorge Menezes    - CENAP/ICMBio
 #' ---
 

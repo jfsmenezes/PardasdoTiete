@@ -21,6 +21,17 @@ O projeto também tem uma pasta '/raw' que contem uma subpasta para cada um dos 
 - experimento 2: Baseado nos dados de julho de 2019. Prove predições espaciais em ressolução menor (5000m).
 - experimento 3: Ainda baseado nos dados de julho de 2019, mas utiliza resolução melhor (30m).
 
+## Descrição dos arquivos de código ##
+
+- main.r: contem a função principal que chama todos as outras.
+- data importer.r: contem a função 'data.importer()' que recebe arquivos xlsx de diferentes individuos, os filtra, e soma todas as informações uma geodatabase (gpkg)
+- envpreparator.r: contem a função 'envpreparator()', que calcula as variaveis ambientais para uma determinada região. Chamada por 'data.importer()', e por main.r.
+- HMMfitter.r: calcula o que é dispersante e residente para nossas analises usando uma Hidden Markov Chain.
+- lightsff.r: tem a função 'SSFer()' que rodas os modelos de step selection function contidos em modelslist.r.
+- predictor.r: tem a função 'predictor()' que converte o modelo em projeção espaciais para a area de estudo, usando um mapa de variaveis ambientais calculados por main.r.
+- report figures.r: Prepara figuras para relatórios trimestrais.
+- acessory functions.r: contem varias pequenas funções, a maior parte chamada por 'SSFer()'.
+
 
 
 
