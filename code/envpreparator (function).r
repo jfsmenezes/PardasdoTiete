@@ -17,7 +17,7 @@
 #         trimestal report for definition
 
 
-envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", finalrdata, res=30, overwrite.gb = TRUE) {
+envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", finalrds, res=30, overwrite.gb = TRUE) {
 
 Sys.setenv(GDAL_DATA="C:\\Program Files\\QGIS 3.10\\share\\gdal")
 Sys.setenv(PROJ_LIB ="C:\\Program Files\\QGIS 3.10\\share\\proj")
@@ -298,7 +298,8 @@ names(mapstack) = c(
     "prop_pasture_5000m"  
 )
 
-save(mapstack, file = paste0(finalfolder, "/",finalrdata))
+# Save the pointers to the raster in a object for future reading 
+saveRDS(mapstack, file = paste0(finalfolder, "/",finalrds))
 return(finalrdata)
 
 }

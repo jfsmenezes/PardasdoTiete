@@ -36,8 +36,8 @@ modelslist <- lapply(modelslist, as.formula)
 names(modelslist) <-  n.modelslist
 
 ### Load mov.track (a.k.a. the locations)
-load(paste0(datafolder, "/movcleaned.RData"))
-load(paste0(mapfolder, "/observedstack.RData"))
+mov.track <- readRDS(paste0(datafolder, "/movcleaned.RData"))
+mapstack  <- readRDS(paste0(mapfolder, "/observedstack.rds"))
 
 ### Load maps ###
 ## TODO: add map sent by Jefferson (once he does one that is ok.)
@@ -98,6 +98,6 @@ specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,
 
 bestmodels <- preds %>% group_by(name) %>% arrange(desc(aucs)) %>% slice(1) %>%
               ungroup() %>% select(-data, -trk)
-save(bestmodels, file=paste0(outfolder, "/bestmodels.RData") )
+saveRDS(bestmodels, file=paste0(outfolder, "/bestmodels.rds") )
 
 }

@@ -69,7 +69,7 @@ data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs
     ### creates the maps for extracting ssf values             
     st_buffer(fixes.geo, 20000) %>% 
     st_union() %>% 
-    envpreparator(finalrdata = "observedstack.RData", 
+    envpreparator(finalrds = "observedstack.rds", 
                   tempdir= tempdir, finalfolder= finalfolder, res= res
                   )
     print("Generated gpkg with jaguar data!")

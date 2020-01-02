@@ -9,10 +9,10 @@ source("./code/acessory functions.r")
 
 
 # Load best model object with best models for each animal
-load(paste0(datafolder,"/bestmodels.RData"))
+bestmodels <- readRDS(paste0(datafolder,"/bestmodels.RData"))
 
 # Load mapstack with pointers to each file
-load(list.files(mapsfolder,pattern="RData",full.names=T)[1])
+mapstack <- readRDS(list.files(mapsfolder,pattern="rds",full.names=T)[1])
 
 for(a in 1:nrow(bestmodels)) {
     coefs <- coef(bestmodels$fit[[a]]$model)

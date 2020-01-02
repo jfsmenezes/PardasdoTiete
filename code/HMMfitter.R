@@ -89,7 +89,7 @@ mov.track <- mov.track.rsp %>%
   mutate(state = as.factor(ifelse(viterbi(m5) %in% dispstate, 'dispersal', 'residency'))) %>%
   make_track(.x = x_, .y=y_, .t=t_, ID, Name, burst_, brst, state, crs = CRS(st_crs(fixes.geo)[[2]]))
 
-save(mov.track, file= paste0(outfolder,"/movcleaned.RData"))
+saveRDS(mov.track, file= paste0(outfolder,"/movcleaned.RData"))
 print("complete Hidden Markov Chain sucessfully")
 }
 
