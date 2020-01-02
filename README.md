@@ -27,7 +27,7 @@ O projeto também tem uma pasta '/raw' que contem uma subpasta para cada um dos 
 - data importer.r: contem a função 'data.importer()' que recebe arquivos xlsx de diferentes individuos, os filtra, e soma todas as informações uma geodatabase (gpkg)
 - envpreparator.r: contem a função 'envpreparator()', que calcula as variaveis ambientais para uma determinada região. Chamada por 'data.importer()', e por main.r.
 - HMMfitter.r: calcula o que é dispersante e residente para nossas analises usando uma Hidden Markov Chain.
-- lightsff.r: tem a função 'SSFer()' que rodas os modelos de step selection function contidos em modelslist.r.
+- lightsff.r: tem a função 'SSFer()' que rodas os modelos de step selection function contidos em modelslist.r. Também contêm os testes de AUC de cada modelo, e seleciona os principais modelos.
 - predictor.r: tem a função 'predictor()' que converte o modelo em projeção espaciais para a area de estudo, usando um mapa de variaveis ambientais calculados por main.r.
 - report figures.r: Prepara figuras para relatórios trimestrais.
 - acessory functions.r: contem varias pequenas funções, a maior parte chamada por 'SSFer()'.
