@@ -37,7 +37,7 @@ source("./code/acessory functions.r")
 
 
 
-experiment.folder <- "./experiment 001"
+experiment.folder <- "./experiment 003"
 res<-5000
 
 
@@ -73,7 +73,7 @@ if(!hasstudystack) {
                tempdir   =   paste0(experiment.folder, "/maps derived/studyarea"),
                finalfolder  = paste0(experiment.folder, "/maps derived/studyarea"),
                finalrds= "lowres.rds",
-               res=5000,
+               res=30,
                overwrite.gb = TRUE
 )
 }
