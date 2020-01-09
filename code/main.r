@@ -13,20 +13,19 @@
 
 
 # Load dependencies
-
+library(raster)
+library(gdalUtils)
+library(dismo)
+library(RQGIS3)
 library(tidyverse)
 library(lubridate)
 library(readxl)
 library(sf)
 library(parallel)
 library(amt)
-library(moveHMM)
-library(dismo)
-library(raster) 
-library(RSAGA)
-library(gdalUtils)
-
-
+#library(moveHMM) # conflicts with RQGIS for some unknown reason. However it will soon be replaced by the ARIMA
+# so I'm not very concerned
+ 
 
 source("./code/data importer.r")
 source("./code/envpreparator (function).r")

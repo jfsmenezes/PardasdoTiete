@@ -17,15 +17,25 @@
 #         trimestal report for definition
 
 
-envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", finalrds, res=30, overwrite.gb = TRUE) {
+envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", finalrds, res=30, overwrite.gb = TRUE, qgis.folder) {
 
-Sys.setenv(GDAL_DATA="C:\\Program Files\\QGIS 3.10\\share\\gdal")
-Sys.setenv(PROJ_LIB ="C:\\Program Files\\QGIS 3.10\\share\\proj")
-env <- rsaga.env()
+#debug: 
+# qgis.folder <- "C:/Program Files/QGIS 3.4"
+# tempdir <- "./test/maps derived"
+# finalfolder <- "./test/maps derived" 
+# overwrite.gb <- FALSE
+# res=2500
+# finalrds = "observedstack.rds"
 
+set_env(qgis.folder)
+Sys.setenv(GDAL_DATA = paste0(qgis.folder, "\\share\\gdal"))
+Sys.setenv(PROJ_LIB  = paste0(qgis.folder, "\\share\\proj"))
 ### Base raster layer ###
 baseproj   <- "+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs" 
 
+#debug:
+# buffergeo <- st_read("D:/Trabalho/pardas do tiete/PardasdoTiete/test/data derived/pardas_tiete_all_individuals.gpkg")
+# buffergeo <- st_transform(buffergeo, crs=baseproj) %>% st_buffer(20000) %>% st_union()
 
 studyarea  <- buffergeo
 studyarea  <- st_transform( studyarea, baseproj)
@@ -44,7 +54,7 @@ landusebase <- paste0(tempdir,"/forestmap.gpkg")
 
 if(file.exists(landusebase) && overwrite.gb | !file.exists(landusebase)) {
 
-    muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
+    muni.folders <- list.dirs("./raw/maps/FBDS/SP",recursive = F)
     muni.use <- lapply(paste0(muni.folders, "/USO"), list.files, pattern="shp$", full.names = T)
     muni.use <- sapply(muni.use, "[[", 1) # the municipality of cubatão has two shapes. This take one for everyone.
 
@@ -56,7 +66,7 @@ if(file.exists(landusebase) && overwrite.gb | !file.exists(landusebase)) {
 
     # I now execute the same code for river files, whose info is not contained in the FDBS use map
 
-    muni.folders <- list.dirs("./maps/FBDS/SP",recursive = F)
+    muni.folders <- list.dirs("./raw/maps/FBDS/SP",recursive = F)
     muni.water <- lapply(paste0(muni.folders, "/HIDROGRAFIA"), list.files, pattern="shp$", full.names = T)
     muni.water <- unlist(muni.water)
     muni.water <- muni.water[!grepl("MASSAS", muni.water)] # remove water bodies because they are included in land use maps
@@ -68,9 +78,9 @@ if(file.exists(landusebase) && overwrite.gb | !file.exists(landusebase)) {
     }
 
 
-}
+
 # A similar principle is used for the canasat map
-cana <- st_read(".\\maps\\canasat\\Cana2013_WGS_SP.shp") %>% 
+cana <- st_read(".\\raw\\maps\\canasat\\Cana2013_WGS_SP.shp") %>% 
         st_transform(baseproj) %>% 
         filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
         mutate(CLASSE_USO = "cana-de-açucar") %>%
@@ -78,7 +88,7 @@ cana <- st_read(".\\maps\\canasat\\Cana2013_WGS_SP.shp") %>%
         st_write(dsn= landusebase,update=T)
 
 # Next, we add pasture
-pasto <- st_read(".\\maps\\Pasture\\pasture_2018.shp") %>% 
+pasto <- st_read(".\\raw\\maps\\Pasture\\pasture_2018.shp") %>% 
         st_transform(baseproj) %>% 
         filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
         mutate(CLASSE_USO = "pastagem") %>%
@@ -87,14 +97,14 @@ pasto <- st_read(".\\maps\\Pasture\\pasture_2018.shp") %>%
 
 
 # Finally adding road
-road <- st_read(".\\maps\\Roads\\gROADS-v1-americas.shp") %>% 
+road <- st_read(".\\raw\\maps\\Roads\\gROADS-v1-americas.shp") %>% 
         st_transform(baseproj) %>%
-        filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
+        filter(. ,as.logical(rowSums(st_intersects(. , studyarea, sparse=F)))) %>%
         mutate(CLASSE_USO = "estradas") %>%
         dplyr::select(geometry, CLASSE_USO) %>%
         st_write(dsn=landusebase,update=T)
 
-
+}
 # Create a land use map using gdalrasterize commands specific for each land use 
   # This assume a implicit order in which the FBDS is overwritten by information from
   # canasat or from the pasture dataset. I opt for this system because these two maps 
@@ -107,10 +117,9 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            dst_filename = landuseraster,
                            where = "CLASSE_USO='água'", 
                            burn = 1, 
-                           init =0,
+                           init = 0,
                            tr= rep(res,2), 
-                           te = bbox,
-                            
+                           te = bbox,    
                            )
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = landuseraster,
@@ -136,14 +145,14 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            dst_filename = landuseraster,
                            where = "CLASSE_USO='pastagem'",
                            burn=8
-                           )       
+                           )     
 
 # Create a distance to road and distance to road and water by creating a landuse map with those 
 # characteristics and then using gdal_proximity to extract distances
-watermap <- paste0(tempdir,"/water.tif")
-roadmap <-  paste0(tempdir,"/estradas.tif")
-waterproxmap <- paste0(tempdir,"/waterprox.tif")
-roadproxmap <-  paste0(tempdir,"/estradasprox.tif")
+watermap     <- paste0(tempdir,"/water.tif")
+roadmap      <-  paste0(tempdir,"/estradas.tif")
+waterproxmap <- paste0(tempdir,"/waterproxmap.tif")
+roadproxmap  <-  paste0(tempdir,"/estradasproxmap.tif")
 
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = watermap,
@@ -153,8 +162,7 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            tr= rep(res,2), 
                            te = bbox 
                            )
-command <- paste("py3_env && gdal_proximity", shQuote(watermap), shQuote(waterproxmap),"-distunits GEO")
-shell(command)
+run_qgis(alg = "gdal:proximity", INPUT = watermap, BAND=1, DATA_TYPE=5, UNITS = 0, OUTPUT = waterproxmap, load_output = FALSE )
 
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = roadmap,
@@ -164,143 +172,84 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            tr= rep(res,2), 
                            te = bbox 
                            )
-
-command <- paste("py3_env && gdal_proximity", shQuote(roadmap), shQuote(roadproxmap) ,"-distunits GEO")
-shell(command)
-
-# Applies Log to these maps using gdal_calc
-log_dist_water <- paste0(tempdir,"/log_dist_water.sdat")
-log_dist_roads <-  paste0(tempdir,"/log_dist_roads.sdat")
+run_qgis(alg = "gdal:proximity", INPUT = roadmap, BAND=1, DATA_TYPE=5, UNITS = 0, OUTPUT = roadproxmap, load_output = FALSE )
 
 
-rsaga.import.gdal(waterproxmap, env=env)
-rsaga.import.gdal(roadproxmap,  env=env)
-rsaga.grid.calculus( sub(".tif","", waterproxmap), log_dist_water,formula="log(a)")
-rsaga.grid.calculus( sub(".tif","", roadproxmap),  log_dist_roads, formula="log(a)")
+# Applies Log to these maps using GRASS
+log_dist_water <- paste0(tempdir, "/log_dist_water.tif")
+log_dist_roads <-  paste0(tempdir,"/log_dist_roads.tif")
 
-### Run proportion calculations in SAGA.####
+run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(waterproxmap), expression = "log_dist_water=log(waterproxmap)", output_dir = tempdir())
+run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(roadproxmap), expression = "log_dist_roads=log(estradasproxmap)", output_dir = tempdir())
 
- # Focal statistics in the raster package are very slow so I opted to use
- # a C-based GIS software. GRASS was proving to be a hell to configure, 
- # likewise for GDAL. GDAL is also very limited. In the end SAGA proved 
- # to be the best outcome.
+file.copy( from = paste0(tempdir(),"\\log_dist_water.tif"), to = log_dist_water)
+file.copy( from = paste0(tempdir(),"\\log_dist_roads.tif"), to = log_dist_roads)
 
-onlyforest  <- paste0(tempdir,"/onlyforest" )
-onlysugar   <- paste0(tempdir,"/onlysugar"  )
-onlypasture <- paste0(tempdir,"/onlypasture" )
+### Run proportion calculations in GRASS using r.neighbors.####
 
 
+type.name = c("forest","sugar", "pasture")
+type.number = c(4,7,8)
+sizes = c(100,500,2500,5000)
 
-binaryzer(landuseraster ,class = 4, filename = onlyforest  ,env=env)
-binaryzer(landuseraster ,class = 7, filename = onlysugar   ,env=env)
-binaryzer(landuseraster ,class = 8, filename = onlypasture ,env=env)
+for( a in 1:length(type.name)) {
+    for(b in 1:length(sizes)) {
+        run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(landuseraster) , expression = paste0("binary=landuse_studyarea==",type.number[a]), output_dir = tempdir())
+        
+        if(ceiling(sizes[b]/res) == 1 ) {
+            file.copy( from = paste0(tempdir(),"\\binary.tif"), 
+                       to = paste0(tempdir, "/prop_",type.name[a],"_",sizes[b],"m.tif")
+                       )
 
-# Execute a low-pass filter (a.k.a. a mean of the values). This is matematically equivalent 
-# to calculate the proportions of 1-cells in the radius. In more biological terms this is equivalent
-# calculte the proportion of sugarcane, of forest and of cattle on the region.
-# Radius is given in number of pixels, so I simply calculated np = m/res, with res being the resolution
-# in m. 
+        } else{
 
-prop_forest_100m     <-   paste0(finalfolder, "/prop_forest_100m.sgrd")
-prop_forest_500m     <-   paste0(finalfolder, "/prop_forest_500m.sgrd")
-prop_forest_2500m    <-   paste0(finalfolder, "/prop_forest_2500m.sgrd")
-prop_forest_5000m    <-   paste0(finalfolder, "/prop_forest_5000m.sgrd")
-prop_sugarcane_100m  <-   paste0(finalfolder, "/prop_sugarcane_100m.sgrd")  
-prop_sugarcane_500m  <-   paste0(finalfolder, "/prop_sugarcane_500m.sgrd")  
-prop_sugarcane_2500m <-   paste0(finalfolder, "/prop_sugarcane_2500m.sgrd") 
-prop_sugarcane_5000m <-   paste0(finalfolder, "/prop_sugarcane_5000m.sgrd") 
-prop_pasture_100m    <-   paste0(finalfolder, "/prop_pasture_100m.sgrd")
-prop_pasture_500m    <-   paste0(finalfolder, "/prop_pasture_500m.sgrd")
-prop_pasture_2500m   <-   paste0(finalfolder, "/prop_pasture_2500m.sgrd")
-prop_pasture_5000m   <-   paste0(finalfolder, "/prop_pasture_5000m.sgrd")
+            params = get_args_man("grass7:r.mfilter")
+            params["input"] = paste0(tempdir(),"/binary.tif")
+            params["filter"] = filter.maker(sizes[b],res, paste0(tempdir(), "/filter.txt" ))
+            params["output"] = normalizePath(paste0(tempdir,"/prop_",type.name[a],"_",sizes[b],"m.tif"))
 
-
-
-rsaga.filter.simple(onlyforest, prop_forest_100m  , method = "smooth", radius = ceiling(100/res) , env=env)
-rsaga.filter.simple(onlyforest, prop_forest_500m  , method = "smooth", radius = ceiling(500/res) , env=env)
-rsaga.filter.simple(onlyforest, prop_forest_2500m , method = "smooth", radius = ceiling(2500/res), env=env)
-rsaga.filter.simple(onlyforest, prop_forest_5000m , method = "smooth", radius = ceiling(5000/res), env=env)
-
-
-
-rsaga.filter.simple(onlysugar, prop_sugarcane_100m  , method = "smooth", radius = ceiling(100/res) , env=env)
-rsaga.filter.simple(onlysugar, prop_sugarcane_500m  , method = "smooth", radius = ceiling(500/res) , env=env)
-rsaga.filter.simple(onlysugar, prop_sugarcane_2500m , method = "smooth", radius = ceiling(2500/res), env=env)
-rsaga.filter.simple(onlysugar, prop_sugarcane_5000m , method = "smooth", radius = ceiling(5000/res), env=env)
-
- 
-
-rsaga.filter.simple(onlypasture, prop_pasture_100m   , method = "smooth", radius = ceiling(100/res) , env=env)
-rsaga.filter.simple(onlypasture, prop_pasture_500m   , method = "smooth", radius = ceiling(500/res) , env=env)
-rsaga.filter.simple(onlypasture, prop_pasture_2500m  , method = "smooth", radius = ceiling(2500/res), env=env)
-rsaga.filter.simple(onlypasture, prop_pasture_5000m  , method = "smooth", radius = ceiling(5000/res), env=env)
-
-prop_forest_100m     <-   paste0(finalfolder, "/prop_forest_100m.sdat")
-prop_forest_500m     <-   paste0(finalfolder, "/prop_forest_500m.sdat")
-prop_forest_2500m    <-   paste0(finalfolder, "/prop_forest_2500m.sdat")
-prop_forest_5000m    <-   paste0(finalfolder, "/prop_forest_5000m.sdat")
-prop_sugarcane_100m  <-   paste0(finalfolder, "/prop_sugarcane_100m.sdat")
-prop_sugarcane_500m  <-   paste0(finalfolder, "/prop_sugarcane_500m.sdat")
-prop_sugarcane_2500m <-   paste0(finalfolder, "/prop_sugarcane_2500m.sdat")
-prop_sugarcane_5000m <-   paste0(finalfolder, "/prop_sugarcane_5000m.sdat")
-prop_pasture_100m    <-   paste0(finalfolder, "/prop_pasture_100m.sdat")
-prop_pasture_500m    <-   paste0(finalfolder, "/prop_pasture_500m.sdat")
-prop_pasture_2500m   <-   paste0(finalfolder, "/prop_pasture_2500m.sdat")
-prop_pasture_5000m   <-   paste0(finalfolder, "/prop_pasture_5000m.sdat")
+            run_qgis(alg = "grass7:r.mfilter", params=params)           
+        }
+    }
+}
 
 # Adding a dispresidency map on the end, in case we want to consider
 # different effects
-init(prop_forest_100m, fun=function(x) rep(1,x), filename = paste0(finalfolder,"/dispresidency.sdat"))
-dispdispersal <- raster(paste0(finalfolder,"/dispresidency.sdat"))
-dispresidency <- raster(paste0(finalfolder,"/dispresidency.sdat"))
+init(raster(landuseraster), fun=function(x) rep(1,x), filename = paste0(tempdir,"/dispresidency.tif"))
 
-# Convert landuseraster to .sdat format so all files in the stack
-# are RSAGA compatible
-rsaga.import.gdal(landuseraster, env=env)
+list.files(tempdir, pattern = "tif$",full.names=T)
 
+mapstack <- stack( list.files(tempdir, pattern = "tif$",full.names=T))
+mapstack <- addLayer(mapstack, mapstack[["dispresidency"]])
 
-mapstack <- stack(
-    sub(".tif",".sdat", landuseraster),
-    dispdispersal,
-    dispresidency,
-    log_dist_water,
-    log_dist_roads,
-    prop_forest_100m     ,
-    prop_forest_500m     ,
-    prop_forest_2500m    ,
-    prop_forest_5000m    ,
-    prop_sugarcane_100m  ,
-    prop_sugarcane_500m  ,
-    prop_sugarcane_2500m ,
-    prop_sugarcane_5000m ,
-    prop_pasture_100m    ,
-    prop_pasture_500m    ,
-    prop_pasture_2500m   ,
-    prop_pasture_5000m  
-)
 names(mapstack) = c(
-    "landuse",
-    "dispdispersal",
-    "dispresidency",
-    "log_dist_water",
-    "log_dist_roads",
+    "dispdispersal"        ,
+    "roads"                ,
+    "dist_roads"           ,
+    "landuse"              ,
+    "log_dist_roads"       ,
+    "log_dist_water"       ,
     "prop_forest_100m"     ,
-    "prop_forest_500m"     ,
     "prop_forest_2500m"    ,
     "prop_forest_5000m"    ,
+    "prop_forest_500m"     ,
+    "prop_pasture_100m"    ,
+    "prop_pasture_2500m"   ,
+    "prop_pasture_5000m"   ,
+    "prop_pasture_500m"    ,
     "prop_sugarcane_100m"  ,
-    "prop_sugarcane_500m"  ,
     "prop_sugarcane_2500m" ,
     "prop_sugarcane_5000m" ,
-    "prop_pasture_100m"    ,
-    "prop_pasture_500m"    ,
-    "prop_pasture_2500m"   ,
-    "prop_pasture_5000m"  
+    "prop_sugarcane_500m"  ,
+    "water"                ,
+    "dist_water"           ,
+    "dispresidency"   
 )
 
+
 # Save the pointers to the raster in a object for future reading 
-saveRDS(mapstack, file = paste0(finalfolder, "/",finalrds))
-return(finalrdata)
+saveRDS(mapstack, file = paste0(tempdir, "/",finalrds))
+return(paste0(tempdir, "/",finalrds))
 
 }
 
@@ -313,6 +262,7 @@ adder <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP/fores
     }
 
 }
+
 adder.water <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP/forestmap.gpkg") { 
     muni.shp <- st_read(muni.use, quiet = T)
     if(nrow(muni.shp)==0) {return(NULL)} else{
@@ -325,10 +275,14 @@ adder.water <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP
         }
     }
 }
-binaryzer <- function(landuse, class, filename,env) {
-  rsaga.import.gdal(landuse,env = env)
-  landuse.saga <- sub("tif$","sgrd",landuse)
-  rsaga.geoprocessor("grid_tools",15,
-                     list(INPUT = landuse.saga, RESULT = filename, METHOD=0, OLD= class, NEW =1, OTHERS = 0, OTHEROPT=""),
-                     env=env,display.command = T,check.parameters = F)
+
+filter.maker <-  function(radius,res,filename) {
+    diameter <- radius * 2
+    diameter.px <- diameter/res
+    if( (diameter.px %% 2)==0) diameter.px = diameter.px + 1
+    write(paste("MATRIX", diameter.px),file=filename)
+    write.table(matrix(1,diameter.px, diameter.px),file=filename,append=T,row.names=F,col.names=F)
+    write("DIVISOR 0", file=filename,append=T)
+    write("TYPE P", file=filename,append=T)
+    return(filename)
 }
