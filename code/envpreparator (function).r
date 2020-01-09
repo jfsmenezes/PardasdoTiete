@@ -17,7 +17,7 @@
 #         trimestal report for definition
 
 
-envpreparator <- function(buffergeo, tempdir="./maps", finalfolder="./maps", finalrds, res=30, overwrite.gb = TRUE, qgis.folder) {
+envpreparator <- function(buffergeo, tempdir="./maps", finalrds, res=30, overwrite.gb = TRUE, qgis.folder) {
 
 #debug: 
 # qgis.folder <- "C:/Program Files/QGIS 3.4"

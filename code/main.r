@@ -72,7 +72,7 @@ if(!hasstudystack) {
     envpreparator( buffergeo = st_read("./raw/maps/area_estudo/area_estudo_SIRGAS2000_UTM22S.shp"),
                tempdir   =   paste0(experiment.folder, "/maps derived/studyarea"),
                finalfolder  = paste0(experiment.folder, "/maps derived/studyarea"),
-               finalrds= "lowres.rds",
+               finalrds= "experiment003map.rds",
                res=30,
                overwrite.gb = TRUE
 )
