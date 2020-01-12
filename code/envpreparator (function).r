@@ -83,7 +83,7 @@ if(file.exists(landusebase) && overwrite.gb | !file.exists(landusebase)) {
 cana <- st_read(".\\raw\\maps\\canasat\\Cana2013_WGS_SP.shp") %>% 
         st_transform(baseproj) %>% 
         filter(. ,c(st_intersects(. , studyarea, sparse=F))) %>%
-        mutate(CLASSE_USO = "cana-de-açucar") %>%
+        mutate(CLASSE_USO = "canadeacucar") %>%
         dplyr::select(geometry, CLASSE_USO) %>%
         st_write(dsn= landusebase,update=T)
 
@@ -109,13 +109,13 @@ road <- st_read(".\\raw\\maps\\Roads\\gROADS-v1-americas.shp") %>%
   # This assume a implicit order in which the FBDS is overwritten by information from
   # canasat or from the pasture dataset. I opt for this system because these two maps 
   # are more precise. 
-landuseraster <- paste0(tempdir, "/landuse_studyarea.tif")
+landuseraster <- paste0(tempdir, "/landuse_studyarea2.tif")
 
 
 
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = landuseraster,
-                           where = "CLASSE_USO='água'", 
+                           where = "CLASSE_USO='agua'", 
                            burn = 1, 
                            init = 0,
                            tr= rep(res,2), 
@@ -123,22 +123,22 @@ gdalUtils::gdal_rasterize( src = landusebase,
                            )
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = landuseraster,
-                           where = "CLASSE_USO IN ('área antropizada', 'área edificada', 'silvicultura')",
+                           where = "CLASSE_USO IN ('area antropizada', 'area edificada', 'silvicultura')",
                            burn=2
                            )
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = landuseraster,
-                           where = "CLASSE_USO='formação florestal'",
+                           where = "CLASSE_USO='formacao florestal'",
                            burn=4
                            )
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = landuseraster,
-                           where = "CLASSE_USO='formação não florestal'",
+                           where = "CLASSE_USO='formacao nao florestal'",
                            burn=5
                            )
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = landuseraster,
-                           where = "CLASSE_USO='cana-de-açucar'",
+                           where = "CLASSE_USO='canadeacucar'",
                            burn=7
                            )   
 gdalUtils::gdal_rasterize( src = landusebase, 
@@ -257,7 +257,9 @@ adder <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP/fores
     muni.shp <- st_read(muni.use, quiet = T)
     muni.shp <- st_transform(muni.shp, crs = baseproj)
     muni.shp <- muni.shp[ c(st_intersects(muni.shp, studyarea, sparse=F)), c("geometry", "CLASSE_USO") ]
-    if(nrow(muni.shp)>0) {    
+    
+    if(nrow(muni.shp)>0) {
+        muni.shp$CLASSE_USO <- stri_trans_general(as.character(muni.shp$CLASSE_USO), "latin-ascii")    
         st_write(muni.shp, dsn=geofile ,update=T, quiet=T)
     }
 
@@ -271,6 +273,7 @@ adder.water <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP
         muni.shp <- cbind(muni.shp[,"geometry"], CLASSE_USO = "água")   
         muni.shp <- muni.shp[ c(st_intersects(muni.shp, studyarea, sparse=F)), c("geometry", "CLASSE_USO") ]
         if(nrow(muni.shp)>0) {
+            muni.shp$CLASSE_USO <- stri_trans_general( as.character(muni.shp$CLASSE_USO) , "latin-ascii")
             st_write(muni.shp, dsn=geofile,update=T, quiet=T)
         }
     }
@@ -278,7 +281,7 @@ adder.water <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP
 
 filter.maker <-  function(radius,res,filename) {
     diameter <- radius * 2
-    diameter.px <- diameter/res
+    diameter.px <- ceiling(diameter/res)
     if( (diameter.px %% 2)==0) diameter.px = diameter.px + 1
     write(paste("MATRIX", diameter.px),file=filename)
     write.table(matrix(1,diameter.px, diameter.px),file=filename,append=T,row.names=F,col.names=F)

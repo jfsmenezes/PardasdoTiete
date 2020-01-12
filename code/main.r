@@ -23,6 +23,7 @@ library(readxl)
 library(sf)
 library(parallel)
 library(amt)
+library(stringi)
 #library(moveHMM) # conflicts with RQGIS for some unknown reason. However it will soon be replaced by the ARIMA
 # so I'm not very concerned
  
@@ -38,7 +39,7 @@ source("./code/acessory functions.r")
 
 
 experiment.folder <- "./experiment 003"
-res<-5000
+res<-30
 
 
 ## First check for the presence of files in the current experiment folder.
@@ -71,10 +72,10 @@ if(!hasmodels) {
 if(!hasstudystack) {
     envpreparator( buffergeo = st_read("./raw/maps/area_estudo/area_estudo_SIRGAS2000_UTM22S.shp"),
                tempdir   =   paste0(experiment.folder, "/maps derived/studyarea"),
-               finalfolder  = paste0(experiment.folder, "/maps derived/studyarea"),
-               finalrds= "experiment003map.rds",
-               res=30,
-               overwrite.gb = TRUE
+               finalrds  = "experiment003map.rds",
+               res=res,
+               overwrite.gb = TRUE,
+               qgis.folder  = "C:/Program Files/QGIS 3.4"
 )
 }
 if(!hasprediction) {
