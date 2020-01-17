@@ -109,7 +109,7 @@ road <- st_read(".\\raw\\maps\\Roads\\gROADS-v1-americas.shp") %>%
   # This assume a implicit order in which the FBDS is overwritten by information from
   # canasat or from the pasture dataset. I opt for this system because these two maps 
   # are more precise. 
-landuseraster <- paste0(tempdir, "/landuse_studyarea2.tif")
+landuseraster <- paste0(tempdir, "/landuse_studyarea.tif")
 
 
 
@@ -191,6 +191,7 @@ file.copy( from = paste0(tempdir(),"\\log_dist_roads.tif"), to = log_dist_roads)
 type.name = c("forest","sugar", "pasture")
 type.number = c(4,7,8)
 sizes = c(100,500,2500,5000)
+
 
 for( a in 1:length(type.name)) {
     for(b in 1:length(sizes)) {
