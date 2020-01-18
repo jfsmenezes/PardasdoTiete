@@ -156,7 +156,7 @@ roadproxmap  <-  paste0(tempdir,"/estradasproxmap.tif")
 
 gdalUtils::gdal_rasterize( src = landusebase, 
                            dst_filename = watermap,
-                           where = "CLASSE_USO='água'", 
+                           where = "CLASSE_USO='agua'", 
                            burn = 1, 
                            init =0,
                            tr= rep(res,2), 

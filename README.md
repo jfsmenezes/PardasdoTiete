@@ -17,9 +17,9 @@ O projeto também tem uma pasta '/raw' que contem uma subpasta para cada um dos 
 
 ## Descrição dos experimentos ##
 
-- experimento 1: Baseado nos dados de julho de 2019. Não predições espaciais, ou os multiplos modelos.
+- experimento 1: Baseado nos dados de dezembro de 2019. Não tem predições espaciais, ou os multiplos modelos.
 - experimento 2: Baseado nos dados de julho de 2019. Prove predições espaciais em ressolução menor (5000m).
-- experimento 3: Ainda baseado nos dados de julho de 2019, mas utiliza resolução melhor (30m).
+- experimento 3: Ainda baseado nos dados de dezembro de 2019, mas utiliza resolução melhor (30m).
 
 ## Descrição dos arquivos de código ##
 

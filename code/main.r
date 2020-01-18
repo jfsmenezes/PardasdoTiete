@@ -26,7 +26,9 @@ library(amt)
 library(stringi)
 #library(moveHMM) # conflicts with RQGIS for some unknown reason. However it will soon be replaced by the ARIMA
 # so I'm not very concerned
- 
+# Also conflicts with openxlsx
+
+
 
 source("./code/data importer.r")
 source("./code/envpreparator (function).r")
@@ -50,11 +52,11 @@ hasHMMdata    <- file.exists(paste0(experiment.folder, "/data derived/movcleaned
 hasgpkg       <- file.exists(paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"))
 
 if(!hasgpkg) { 
-    data.importer(rawfolder = paste0(experiment.folder,"/data derived/modifiedlocs"), 
-                  tempdir = paste0(experiment.folder,"/maps derived/observedstack"),
-                  finalfolder = paste0(experiment.folder,"/maps derived/observedstack"),
-                  gpkgfolder = paste0(experiment.folder, "/data derived"),
-                  res = res 
+    data.importer(derivdir   = paste0(experiment.folder,"/data derived"),
+                  rawdir     = paste0("./raw/data 17.12.19"), 
+                  tempdir    = paste0(experiment.folder,"/maps derived/observedstack"),
+                  res = res,
+                  qgis.folder = "C:/Program Files/QGIS 3.4"
                   )
 }
 

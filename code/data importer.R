@@ -20,37 +20,25 @@
  ## Output: A Geopackage with data of all animals, along with a ID and timestamp columns.
 
 
-data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs =NULL) {
+data.importer <-  function(derivdir, rawdir, tempdir, res, qgis.folder, crs =NULL) {
     ### Loading dependencies
     if(is.null(crs)) {
         crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
     }
 
-    meta.data <- read.csv2(paste0(rawfolder,"/meta_data.csv"),stringsAsFactors = F)
+    meta.data <- read.csv2(paste0(rawdir,"/meta_data.csv"),stringsAsFactors = F)
 
-    ### Load all csv files in folder.
-    files2read <- list.files(path = rawfolder, pattern = "Pardas_do_Tiete_",full.names=T)#"./data/locations/pardas_tiete_.*.csv")
-    fix.frames <- lapply(files2read, read_excel, sheet=1)
-    #for debug
-    #fix.frames <- lapply(fix.frames, function(x) x[sample(1:nrow(x), round(nrow(x)/10),0), ] )
-
-
-
-
-
-    ###Select relevant columns
-    fix.frames <- lapply(fix.frames, function(x) x[,c( "ID", "timestamp", "Latitude", "Longitude")] )
-
-
-    ### Combine all individuals in a data.frame.
-    fixes <- do.call(rbind, fix.frames)
-
-
+    ### Load  xlsx file with all locations.
+    # Convert timestamp from excel serial code to R's POSIXct
+    # Also rename columns to more readable format
+    fixes <- read_xlsx(paste0(derivdir,"/Pardas_do_Tiete_todos_individuos.xlsx"))
+    colnames(fixes) <- c("Name","timestamp","Latitude","Longitude")
+    
 
     ### Use a left join with meta.data to find releasedates and eliminate animals from it.
     # Also arrange by animal and then in cronological order, and eliminate duplicate rows.
     fixes <- fixes %>% 
-            left_join(meta.data[,c("ID","release.date.utc","Name")], by="ID") %>%
+            left_join(meta.data[,c("ID","release.date.utc","Name")], by="Name") %>%
             mutate(release.date.utc = as.POSIXct(strptime(release.date.utc,format="%d/%m/%Y %H:%M"))) %>%
             filter( timestamp >= release.date.utc, Latitude > -40) %>%
             arrange(ID, timestamp) %>%
@@ -58,19 +46,19 @@ data.importer <-  function(rawfolder, tempdir, finalfolder, gpkgfolder, res, crs
             dplyr::select( - release.date.utc)
 
 
-
     ### creating spatial object and converting it to Albers equal area
     fixes.geo <- st_as_sf(fixes, coords = c("Longitude","Latitude"), crs = 4326) %>%
                 st_transform(crs=crs) %>%
                 mutate(Longitude  = st_coordinates(.)[,1], Latitude = st_coordinates(.)[,2]) 
                 
-    st_write(fixes.geo, dsn=paste0(gpkgfolder,"/pardas_tiete_all_individuals.gpkg"))
+    st_write(fixes.geo, dsn=paste0(derivdir,"/pardas_tiete_all_individuals.gpkg"))
 
     ### creates the maps for extracting ssf values             
     st_buffer(fixes.geo, 20000) %>% 
     st_union() %>% 
     envpreparator(finalrds = "observedstack.rds", 
-                  tempdir= tempdir, finalfolder= finalfolder, res= res
+                  tempdir= tempdir, res= res,
+                  qgis.folder = qgis.folder
                   )
     print("Generated gpkg with jaguar data!")
 }
