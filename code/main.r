@@ -33,7 +33,7 @@ library(stringi)
 source("./code/data importer.r")
 source("./code/envpreparator (function).r")
 source("./code/ARIMAfitter.r")
-source("./code/lightssf.r")
+source("./code/SSFer.r")
 source("./code/predictor.r")
 source("./code/acessory functions.r")
 
@@ -61,7 +61,7 @@ if(!hasgpkg) {
 }
 
 if(!hasHMMdata) {
-    ARMAfitter(infile  = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
+    ARIMAfitter(infile  = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
                outfile = paste0(experiment.folder, "/data derived/mov.track.rds") 
     )
 }
