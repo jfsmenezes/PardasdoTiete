@@ -66,8 +66,8 @@ if(!hasHMMdata) {
     )
 }
 if(!hasmodels) {
-    ssfer(datafolder = paste0(experiment.folder, "/data derived"),
-          mapfolder = paste0(experiment.folder, "/maps derived/observedstack"),
+    ssfer(data = paste0(experiment.folder, "/data derived/mov.track.rds"),
+          maps = paste0(experiment.folder, "/maps derived/observedstack/observedstack.rds"),
           outfolder = paste0(experiment.folder, "/data derived") )
 }
 

@@ -26,7 +26,7 @@ prepare <- function(d, maps, prob.train) {
       amt::time_of_day() %>% 
       left_join(
         d %>% 
-          dplyr::select(t_, dispersal.behavior),
+          dplyr::select(t_, disp),
         by = c("t1_" = "t_") 
       ) %>% 
       amt::random_steps() 

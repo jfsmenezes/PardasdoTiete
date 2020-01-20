@@ -25,11 +25,16 @@
 
 
 
-ARIMAfitter<- function(infile,outfile) {
+ARIMAfitter<- function(infile,outfile, crs=NULL) {
 
 #For debug:
 #library(sf)
 #infile <- "./experiment 003/data derived/pardas_tiete_all_individuals.gpkg"
+if(is.null(crs)) {
+    crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
+}
+
+
 
 # TODO: investigate why we only have three individuals
 data <- st_read(infile)
@@ -92,10 +97,10 @@ dailypos <- do.call(rbind, holder)
 # pass information to dataset with all locations using a left join
 data$day <- as.Date(data$timestamp)
 dailypos$day <- as.Date(dailypos$timestamp)
-data <- left_join(data, as.data.frame(dailypos[,c("Name","day","disp")]), by =c("Name","day"))
+data <- left_join(data, as.data.frame(dailypos[,c("Name","day","disp")]), by = c("Name","day"))
 data <- as.data.frame(data)
 data <- data[,c("Name","timestamp","Longitude","Latitude","disp")]
-mov.track <- make_track(data, Longitude, Latitude, timestamp)
+mov.track <- make_track(data, Longitude, Latitude, timestamp, Name, disp,crs = CRS(crs))
 saveRDS(mov.track,outfile)
 return(outfile)
 
