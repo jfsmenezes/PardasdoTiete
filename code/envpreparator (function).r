@@ -249,8 +249,7 @@ names(mapstack) = c(
 
 
 # Save the pointers to the raster in a object for future reading 
-saveRDS(mapstack, file = paste0(tempdir, "/",finalrds))
-return(paste0(tempdir, "/",finalrds))
+return(tempdir)
 
 }
 
