@@ -37,7 +37,7 @@ source("./code/SSFer.r")
 source("./code/predictor.r")
 source("./code/acessory functions.r")
 
-
+## TODO: Add log_dist_cities to envpreparator
 
 
 experiment.folder <- "./experiment 003"
@@ -67,7 +67,7 @@ if(!hasHMMdata) {
 }
 if(!hasmodels) {
     ssfer(data = paste0(experiment.folder, "/data derived/mov.track.rds"),
-          maps = paste0(experiment.folder, "/maps derived/observedstack/observedstack.rds"),
+          tempdir = paste0(experiment.folder, "/maps derived/observedstack"),
           outfolder = paste0(experiment.folder, "/data derived") )
 }
 

@@ -109,7 +109,7 @@ road <- st_read(".\\raw\\maps\\Roads\\gROADS-v1-americas.shp") %>%
   # This assume a implicit order in which the FBDS is overwritten by information from
   # canasat or from the pasture dataset. I opt for this system because these two maps 
   # are more precise. 
-landuseraster <- paste0(tempdir, "/landuse_studyarea.tif")
+landuseraster <- paste0(tempdir, "/landuse.tif")
 
 
 
@@ -195,7 +195,7 @@ sizes = c(100,500,2500,5000)
 
 for( a in 1:length(type.name)) {
     for(b in 1:length(sizes)) {
-        run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(landuseraster) , expression = paste0("binary=landuse_studyarea==",type.number[a]), output_dir = tempdir())
+        run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(landuseraster) , expression = paste0("binary=landuse==",type.number[a]), output_dir = tempdir())
         
         if(ceiling(sizes[b]/res) == 1 ) {
             file.copy( from = paste0(tempdir(),"\\binary.tif"), 

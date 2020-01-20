@@ -23,7 +23,7 @@
 # Questions:
 # 3) How do I combine the models for each individuals, especially if they point to different variables.
 
-ssfer <- function(data,maps, outfolder) {
+ssfer <- function(data,tempdir, outfolder) {
   
 
 
@@ -40,7 +40,7 @@ names(modelslist) <-  n.modelslist
 
 ### Load mov.track (a.k.a. the locations)
 mov.track <- readRDS(data)
-mapstack  <- readRDS(maps)
+mapstack  <- stack(list.files(tempdir,pattern="tif$",full.names=T))
 
 ### Load maps ###
 ## TODO: add map sent by Jefferson (once he does one that is ok.)
