@@ -32,7 +32,7 @@ library(stringi)
 
 source("./code/data importer.r")
 source("./code/envpreparator (function).r")
-source("./code/HMMfitter.r")
+source("./code/ARIMAfitter.r")
 source("./code/lightssf.r")
 source("./code/predictor.r")
 source("./code/acessory functions.r")
