@@ -61,8 +61,8 @@ if(!hasgpkg) {
 }
 
 if(!hasHMMdata) {
-    HMMfitter(infile = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
-              outfolder = paste0(experiment.folder, "/data derived") 
+    ARMAfitter(infile  = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
+               outfile = paste0(experiment.folder, "/data derived/mov.track.rds") 
     )
 }
 if(!hasmodels) {
