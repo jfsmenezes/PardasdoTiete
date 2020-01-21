@@ -68,7 +68,7 @@ if(!hasHMMdata) {
 if(!hasmodels) {
     ssfer(data = paste0(experiment.folder, "/data derived/mov.track.rds"),
           tempdir = paste0(experiment.folder, "/maps derived/observedstack"),
-          outfolder = paste0(experiment.folder, "/data derived/bestmodels.rds") )
+          outfile = paste0(experiment.folder, "/data derived/bestmodels.rds") )
 }
 
 if(!hasstudystack) {
