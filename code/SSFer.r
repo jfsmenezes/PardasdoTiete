@@ -23,7 +23,7 @@
 # Questions:
 # 3) How do I combine the models for each individuals, especially if they point to different variables.
 
-ssfer <- function(data,tempdir, outfolder) {
+ssfer <- function(data,tempdir, outfile) {
   
 
 
@@ -70,37 +70,21 @@ storage <- storage %>% mutate(m.name = map(fit, names) )  %>% unnest(cols = c("m
 
 ### Add AIC ###
 # (not comparable between non nested models)
-storage <- storage %>% mutate(aics = map_dbl(fit, ~ AIC(.x$model)))
+
+storage <- storage %>% filter(sapply(fit,function(x) class(x)[1])=="fit_clogit") %>% mutate(aics = map_dbl(fit, ~ AIC(.x$model)))
 
 ### Calculate AUCs ###
 # TODO: fix strata error by calculating predicting probabilities for every step, assuming 
 # all steps are equally likely (following Muller & MacLehose, 2014)
-wrong<-numeric()
-for( a in 1:length(storage$fit)) {
-pred <- length(specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,]))
-wrong <-  c(wrong, nrow(storage$trk[[a]][!storage$trk[[a]]$train,]) != pred )
-}
-
 preds <- storage %>% mutate( aucs = map2_dbl(fit, trk, auccalculator) )
 
-
-
-model = aicmodel$fit[[a]]$model
-newdata = aicmodel$trk[[a]][!aicmodel$trk[[a]]$train,]
-wrong<-numeric()
-for( a in 1:length(storage$fit)) {
-print(a)
-pred <- specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,])
-if( all(is.na(pred)) ) {break}
-
-}
-a=29
-any(is.na(storage$trk[[a]]))
-storage$trk[[a]]
-specialpredict(storage$fit[[a]]$model, storage$trk[[a]][!storage$trk[[a]]$train,])
-
-bestmodels <- preds %>% group_by(name) %>% arrange(desc(aucs)) %>% slice(1) %>%
+bestmodels <- preds %>% group_by(Name) %>% arrange(desc(aucs)) %>% slice(1) %>%
               ungroup() %>% select(-data, -trk)
-saveRDS(bestmodels, file=paste0(outfolder, "/bestmodels.rds") )
+saveRDS(bestmodels, file=outfile )
 
 }
+
+# Code for spatial predictions Exploration purposes only
+# plot(mapstack$landuse,ext=extent(469723,470000,-1140213,-1131000))
+# test<-predict(mapstack, storage$fit[[1]]$model, ext=extent(469723,470000,-1140213,-1131000),const=data.frame(step_id_=3570),type="risk",reference="sample")
+# test2<-predict(mapstack, storage$fit[[1]]$model, ext=extent(469723,470000,-1140213,-1131000),const=data.frame(step_id_=3566),type="risk",reference="sample")

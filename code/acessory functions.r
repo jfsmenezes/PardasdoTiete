@@ -33,8 +33,8 @@ prepare <- function(d, maps, prob.train) {
 
     d2 <- amt::extract_covariates(d1, maps) %>%
           mutate(landuse = factor(landuse, 
-                                  levels = c(1,2,4,5,7,8), 
-                                  labels = c('water', 'antropic', 'forest', 'natural','sugarcane', 'pasture')
+                                  levels = c(1,2,4,5,7,8) 
+                                  #labels = c('water', 'antropic', 'forest', 'natural','sugarcane', 'pasture')
                                   )
                 ) %>%
           mutate(disp = as.factor(disp)) 
@@ -164,7 +164,8 @@ specialpredict <- function(model, newdata) {
 
 auccalculator <-  function(ssf, trk) {
   test <- trk %>% filter(!train)
-  preds <- specialpredict(ssf$model, test )
+  preds <- predict(ssf$model, newdata=test, type="risk", reference="sample" )
+  preds <- preds/(1+preds)
   iscase <- pull(test,"case_")
   evaluation <- evaluate( preds[iscase], preds[!iscase] )
   return(evaluation@auc)
