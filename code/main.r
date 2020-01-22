@@ -32,12 +32,12 @@ library(stringi)
 
 source("./code/data importer.r")
 source("./code/envpreparator (function).r")
-source("./code/HMMfitter.r")
-source("./code/lightssf.r")
+source("./code/ARIMAfitter.r")
+source("./code/SSFer.r")
 source("./code/predictor.r")
 source("./code/acessory functions.r")
 
-
+## TODO: Add log_dist_cities to envpreparator
 
 
 experiment.folder <- "./experiment 003"
@@ -61,14 +61,14 @@ if(!hasgpkg) {
 }
 
 if(!hasHMMdata) {
-    HMMfitter(infile = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
-              outfolder = paste0(experiment.folder, "/data derived") 
+    ARIMAfitter(infile  = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
+               outfile = paste0(experiment.folder, "/data derived/mov.track.rds") 
     )
 }
 if(!hasmodels) {
-    ssfer(datafolder = paste0(experiment.folder, "/data derived"),
-          mapfolder = paste0(experiment.folder, "/maps derived/observedstack"),
-          outfolder = paste0(experiment.folder, "/data derived") )
+    ssfer(data = paste0(experiment.folder, "/data derived/mov.track.rds"),
+          tempdir = paste0(experiment.folder, "/maps derived/observedstack"),
+          outfile = paste0(experiment.folder, "/data derived/bestmodels.rds") )
 }
 
 if(!hasstudystack) {
@@ -81,8 +81,10 @@ if(!hasstudystack) {
 )
 }
 if(!hasprediction) {
-    predictor(datafolder = paste0(experiment.folder, "/data derived"),
-    mapfolder = paste0(experiment.folder, "/maps derived/studyarea"),
-    outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions")
+    predictor(models = paste0(experiment.folder, "/data derived/bestmodels.rds"),
+              tempdir = paste0(experiment.folder, "/maps derived/studyarea"),
+              outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions"),
+              qgis.folder  = "C:/Program Files/QGIS 3.4",
+              overwrite = TRUE
 
 }

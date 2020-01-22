@@ -26,27 +26,18 @@ prepare <- function(d, maps, prob.train) {
       amt::time_of_day() %>% 
       left_join(
         d %>% 
-          dplyr::select(t_, dispersal.behavior),
+          dplyr::select(t_, disp),
         by = c("t1_" = "t_") 
       ) %>% 
       amt::random_steps() 
 
     d2 <- amt::extract_covariates(d1, maps) %>%
-          rename(landuse = FBDS_land_use_SP_sirgas_albers_canasat_7_pasture_8) %>% 
-          mutate(landuse = ifelse(landuse == 3 | landuse == 6, 2, landuse))    %>%
           mutate(landuse = factor(landuse, 
-                                  levels = c(1,2,4,5,7,8), 
-                                  labels = c('water', 'antropic', 'forest', 'natural','sugarcane', 'pasture')
+                                  levels = c(1,2,4,5,7,8) 
+                                  #labels = c('water', 'antropic', 'forest', 'natural','sugarcane', 'pasture')
                                   )
                 ) %>%
-          mutate(log_sl_         = log(sl_),
-                 log_dist_water  = log(dist_water+1.1),
-                 log_dist_cities = log(dist_cities+1.1),
-                 log_dist_roads  = log(dist_roads+1.1),
-                 disp            = as.factor(dispersal.behavior),
-                 tod             = as.factor(tod_end_)
-          ) %>%
-          select(-FBDS_land_use_SP_sirgas_albers_canasat_7, - dispersal.behavior, -tod_end_)
+          mutate(disp = as.factor(disp)) 
 
 
     burst_in_sp <- as.data.frame(d2) %>% 
@@ -173,7 +164,8 @@ specialpredict <- function(model, newdata) {
 
 auccalculator <-  function(ssf, trk) {
   test <- trk %>% filter(!train)
-  preds <- specialpredict(ssf$model, test )
+  preds <- predict(ssf$model, newdata=test, type="risk", reference="sample" )
+  preds <- preds/(1+preds)
   iscase <- pull(test,"case_")
   evaluation <- evaluate( preds[iscase], preds[!iscase] )
   return(evaluation@auc)

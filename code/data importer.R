@@ -31,6 +31,7 @@ data.importer <-  function(derivdir, rawdir, tempdir, res, qgis.folder, crs =NUL
     ### Load  xlsx file with all locations.
     # Convert timestamp from excel serial code to R's POSIXct
     # Also rename columns to more readable format
+    # Finally changes the timezone to UTC, because read_xlsx assumes data are following the local timezone
     fixes <- read_xlsx(paste0(derivdir,"/Pardas_do_Tiete_todos_individuos.xlsx"))
     colnames(fixes) <- c("Name","timestamp","Latitude","Longitude")
     tz(fixes$timestamp) <- "UTC"

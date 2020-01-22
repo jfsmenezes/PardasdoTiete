@@ -1,52 +1,54 @@
 ### Script for tunring a map of environtal variables from
 ### the study area in a prediction map
 
-predictor <- function(datafolder, mapsfolder,outfolder) {
-# set SAGA to use all but one available cores
-#env <- rsaga.env(cores = detectCores() - 1)
-env <- rsaga.env()
-source("./code/acessory functions.r")
+predictor <- function(models, tempdir, outfolder, qgis.folder, overwrite = FALSE) {
 
+# set qgis environment
+set_env(qgis.folder)
 
 # Load best model object with best models for each animal
-bestmodels <- readRDS(paste0(datafolder,"/bestmodels.RData"))
+bestmodels <- readRDS(models)
 
 # Load mapstack with pointers to each file
-mapstack <- readRDS(list.files(mapsfolder,pattern="rds",full.names=T)[1])
+mapstack  <- stack(list.files(tempdir,pattern="tif$",full.names=T))
+names(mapstack)[3] <- "landuse"
 
+predholder <- character(length = length(bestmodels$Name))
 for(a in 1:nrow(bestmodels)) {
-    coefs <- coef(bestmodels$fit[[a]]$model)
+     #For debug:
+     ext=extent(469723,470000,-1140213,-1131000)
 
-
-    # Check if there is any coefficient who does not have predicted data
-    notinteractions <- names(coefs)[!grepl(":", names(coefs))]
-    stopifnot( all( notinteractions %in% names(mapstack) ) )
-
-    # Grab all relevant variables in the same order as the coefficient
-    used.stack <- mapstack[[notinteractions]]
-    used.stack <- stack(used.stack) #enforces the object is a Rasterstack to avoid different handle in case we get a Raster layer from previous line (happens when there is only one variable in the model)
+     # get the first step_id_ for each individual from their models (it does not matter which I take)
+     stepid <- bestmodels$fit[[1]]$model$model[1,"strata(step_id_)"] %>% as.character %>% sub("step_id_=","",.) %>% as.numeric
     
-    predict(used.stack, bestmodels$fit[[a]]$model, fun=specialpredict,
-            filename=paste0(outfolder,"/qualitylinear",a,".sdat") )
-
+     # run the predictions
+     # P.S: with na.rm=T predict will eliminate rows whenever there is a cell with NA or NaN, even if this cell is in a layer that is not part of the model.
+     preds <-predict(object = mapstack, 
+             model  = bestmodels$fit[[2]]$model,
+             const  = data.frame(step_id_=stepid),
+             type   = "risk",
+             reference = "sample", 
+             ext = ext,
+             na.rm = FALSE, 
+             progress = "text",
+             factors = list(landuse =c(2,4,5,7,8)),
+             filename = paste0(outfolder,"/qualitylinear_",bestmodels$Name[a],".tif")
+             )
     
-    # Finish with expected number of events
-    final <- rsaga.grid.calculus( paste0(outfolder,"/qualitylinear",a) , 
-                                 out.grid = paste0(outfolder,"/qualityexp",a), 
-                                 formula = "(2.7182818^a)/(1+2.7182818^a)", 
-                                 intern=FALSE 
-                                 )
+    # Take the exponent of the linear predictor
+    preds <- run_qgis("grass7:mapcalc", maps = preds, 
+                      expression = paste0("qualityexp_",bestmodels$Name[a],"=qualitylinear_",bestmodels$Name[a],"/(1+qualitylinear_",bestmodels$Name[a],")"),
+                      output_dir = outfolder
+                       )
+    # Store filename
+    predholder[[a]] <- preds[[1]]
 }
-
-# generate a final mean of all predict maps (i.e. across all individuals).
-qualitymaps <- stack(paste0(mapsfolder,"/qualityexp",1:nrow(bestmodels),".sdat"))
-meanquality <- overlay(qualitymaps,fun=mean,filename = paste0(outfolder,"/qualityexpmean.sdat") )
-crs(meanquality) <- crs(mapstack)
+  
+  # Take average of all animals quality predictions
+  expr <- paste0("meanquality=","(",paste(paste0("qualityexp_",bestmodels$Name),collapse="+"),")","/", length(bestmodels$Name))
+  avgquality <- run_qgis("grass7:mapcalc", maps = normalizePath(predholder), expression = expr, output_dir = outfolder )
 
 }
-
-
-
 
 
 
