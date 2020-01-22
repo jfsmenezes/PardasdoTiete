@@ -83,8 +83,8 @@ bestmodels <- preds %>% group_by(Name) %>% arrange(desc(aucs)) %>% slice(1) %>%
 saveRDS(bestmodels, file=outfile )
 
 }
-
-# Code for spatial predictions Exploration purposes only
-# plot(mapstack$landuse,ext=extent(469723,470000,-1140213,-1131000))
-# test<-predict(mapstack, storage$fit[[1]]$model, ext=extent(469723,470000,-1140213,-1131000),const=data.frame(step_id_=3570),type="risk",reference="sample")
-# test2<-predict(mapstack, storage$fit[[1]]$model, ext=extent(469723,470000,-1140213,-1131000),const=data.frame(step_id_=3566),type="risk",reference="sample")
+plot(mapstack$landuse,ext=extent(469723,470000,-1140213,-1131000))
+windows()
+storage <- storage[,-3]
+ test<-predict(mapstack, storage$fit[[1]]$model, ext=extent(469723,470000,-1140213,-1131000),const=data.frame(step_id_=46),type="risk",reference="sample")
+plot(test)

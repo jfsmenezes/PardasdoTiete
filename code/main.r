@@ -81,8 +81,8 @@ if(!hasstudystack) {
 )
 }
 if(!hasprediction) {
-    predictor(datafolder = paste0(experiment.folder, "/data derived"),
-    mapfolder = paste0(experiment.folder, "/maps derived/studyarea"),
-    outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions")
+    predictor(models = paste0(experiment.folder, "/data derived/bestmodels.rds"),
+              tempdir = paste0(experiment.folder, "/maps derived/studyarea"),
+              outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions")
 
 }
