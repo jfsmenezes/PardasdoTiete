@@ -179,8 +179,8 @@ run_qgis(alg = "gdal:proximity", INPUT = roadmap, BAND=1, DATA_TYPE=5, UNITS = 0
 log_dist_water <- paste0(tempdir, "/log_dist_water.tif")
 log_dist_roads <-  paste0(tempdir,"/log_dist_roads.tif")
 
-run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(waterproxmap), expression = "log_dist_water=log(waterproxmap)", output_dir = tempdir())
-run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(roadproxmap), expression = "log_dist_roads=log(estradasproxmap)", output_dir = tempdir())
+run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(waterproxmap), expression = "log_dist_water=log(waterproxmap+1)", output_dir = tempdir())
+run_qgis(alg = "grass7:r.mapcalc", maps = normalizePath(roadproxmap), expression = "log_dist_roads=log(estradasproxmap+1)", output_dir = tempdir())
 
 file.copy( from = paste0(tempdir(),"\\log_dist_water.tif"), to = log_dist_water)
 file.copy( from = paste0(tempdir(),"\\log_dist_roads.tif"), to = log_dist_roads)
