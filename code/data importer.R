@@ -26,13 +26,14 @@ data.importer <-  function(derivdir, rawdir, tempdir, res, qgis.folder, crs =NUL
         crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
     }
 
-    meta.data <- read.csv2(paste0(rawdir,"/meta_data.csv"),stringsAsFactors = F)
+    meta.data <- read.csv(paste0(rawdir,"/meta_data.csv"),stringsAsFactors = F)
 
     ### Load  xlsx file with all locations.
     # Convert timestamp from excel serial code to R's POSIXct
     # Also rename columns to more readable format
     fixes <- read_xlsx(paste0(derivdir,"/Pardas_do_Tiete_todos_individuos.xlsx"))
     colnames(fixes) <- c("Name","timestamp","Latitude","Longitude")
+    tz(fixes$timestamp) <- "UTC"
     
 
     ### Use a left join with meta.data to find releasedates and eliminate animals from it.
