@@ -83,6 +83,8 @@ if(!hasstudystack) {
 if(!hasprediction) {
     predictor(models = paste0(experiment.folder, "/data derived/bestmodels.rds"),
               tempdir = paste0(experiment.folder, "/maps derived/studyarea"),
-              outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions")
+              outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions"),
+              qgis.folder  = "C:/Program Files/QGIS 3.4",
+              overwrite = TRUE
 
 }

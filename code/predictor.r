@@ -1,8 +1,10 @@
 ### Script for tunring a map of environtal variables from
 ### the study area in a prediction map
 
-predictor <- function(models, tempdir, outfolder) {
+predictor <- function(models, tempdir, outfolder, qgis.folder, overwrite = FALSE) {
 
+# set qgis environment
+set_env(qgis.folder)
 
 # Load best model object with best models for each animal
 bestmodels <- readRDS(models)
