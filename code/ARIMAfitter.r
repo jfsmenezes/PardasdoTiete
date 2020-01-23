@@ -35,8 +35,6 @@ if(is.null(crs)) {
 }
 
 
-
-# TODO: investigate why we only have three individuals
 data <- st_read(infile)
 inds <- as.character(unique(data$Name))
 
@@ -122,24 +120,27 @@ ll.finddate <- function(cp, Time, X, Y,
   
   if(event == "settling" | event == "departure") {
     fits <- list(
-      X.fit1 = arima(X[Time < cp[1]], order = order1, method = method.arima, ...),
-      X.fit2 = arima(X[Time >= cp[1]], order = order2, method = method.arima,  ...),
-      Y.fit1 = arima(Y[Time < cp[1]], order = order1, method = method.arima,  ...),
-      Y.fit2 = arima(Y[Time >= cp[1]], order = order2, method = method.arima,  ...))
+      X.fit1 = tryCatch( arima(X[Time < cp[1]], order = order1, method = method.arima, ...),   error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+      X.fit2 = tryCatch( arima(X[Time >= cp[1]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+      Y.fit1 = tryCatch( arima(Y[Time < cp[1]], order = order1, method = method.arima,  ...),  error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+      Y.fit2 = tryCatch( arima(Y[Time >= cp[1]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) 
+      )
   } else {
     if(event == "depart-settle") {
       fits <- list(
-        X.fit1 = arima(X[Time < cp[1]], order = order1, method = method.arima,  ...),
-        X.fit2 = arima(X[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima,  ...),
-        X.fit3 = arima(X[Time >= cp[2]], order = order3, method = method.arima,  ...),
-        Y.fit1 = arima(Y[Time < cp[1]], order = order1, method = method.arima,  ...),
-        Y.fit2 = arima(Y[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima,  ...),
-        Y.fit3 = arima(Y[Time >= cp[2]], order = order3, method = method.arima,  ...))
+        X.fit1 = tryCatch( arima(X[Time < cp[1]], order = order1, method = method.arima,  ...),                 error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        X.fit2 = tryCatch( arima(X[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        X.fit3 = tryCatch( arima(X[Time >= cp[2]], order = order3, method = method.arima,  ...),                error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        Y.fit1 = tryCatch( arima(Y[Time < cp[1]], order = order1, method = method.arima,  ...),                 error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        Y.fit2 = tryCatch( arima(Y[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        Y.fit3 = tryCatch( arima(Y[Time >= cp[2]], order = order3, method = method.arima,  ...),                error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))})
+        )
     } else {
       if(event == 'resident' | event == 'dispersing') {
         fits <- list(
-          X.fit1 = arima(X, order = order1, method = method.arima,  ...),
-          Y.fit1 = arima(Y, order = order1, method = method.arima,  ...))
+          X.fit1 = tryCatch( arima(X, order = order1, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+          Y.fit1 = tryCatch( arima(Y, order = order1, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) 
+          )
       }
     }
   }

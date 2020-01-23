@@ -13,6 +13,7 @@
 
 
 # Load dependencies
+options(java.parameters = "-Xmx1g" )
 library(raster)
 library(gdalUtils)
 library(dismo)
