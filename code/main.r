@@ -25,10 +25,8 @@ library(sf)
 library(parallel)
 library(amt)
 library(stringi)
-#library(moveHMM) # conflicts with RQGIS for some unknown reason. However it will soon be replaced by the ARIMA
-# so I'm not very concerned
-# Also conflicts with openxlsx
 
+# TODO: check for convergence issues in ARIMA fitter (LAPACK matrix is exactly singular)
 
 
 source("./code/data importer.r")
