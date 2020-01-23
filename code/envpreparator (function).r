@@ -270,7 +270,7 @@ adder.water <- function(muni.use, studyarea, baseproj, geofile = "./maps/FBDS/SP
     if(nrow(muni.shp)==0) {return(NULL)} else{
     
         muni.shp <- st_transform(muni.shp, crs = baseproj)
-        muni.shp <- cbind(muni.shp[,"geometry"], CLASSE_USO = "água")   
+        muni.shp <- cbind(muni.shp[,"geometry"], CLASSE_USO = "agua")   
         muni.shp <- muni.shp[ c(st_intersects(muni.shp, studyarea, sparse=F)), c("geometry", "CLASSE_USO") ]
         if(nrow(muni.shp)>0) {
             muni.shp$CLASSE_USO <- stri_trans_general( as.character(muni.shp$CLASSE_USO) , "latin-ascii")
