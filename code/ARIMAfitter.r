@@ -29,7 +29,7 @@ ARIMAfitter<- function(infile,outfile, crs=NULL) {
 
 #For debug:
 #library(sf)
-#infile <- "./experiment 003/data derived/pardas_tiete_all_individuals.gpkg"
+#infile <- "./experiment003/dataderived/pardas_tiete_all_individuals.gpkg"
 if(is.null(crs)) {
     crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
 }

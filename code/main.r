@@ -39,7 +39,7 @@ source("./code/acessory functions.r")
 ## TODO: Add log_dist_cities to envpreparator
 
 
-experiment.folder <- "./experiment 003"
+experiment.folder <- "./experiment003"
 res<-30
 
 
@@ -52,16 +52,16 @@ produce.predictions <- TRUE
 
 
 if(produce.gpkg) { 
-    data.importer(derivdir   = paste0(experiment.folder,"/data derived"),
+    data.importer(derivdir   = paste0(experiment.folder,"/dataderived"),
                   rawdir     = paste0("./raw/data 17.12.19"), 
-                  tempdir    = paste0(experiment.folder,"/maps derived/observedstack"),
+                  tempdir    = paste0(experiment.folder,"/mapsderived/observedstack"),
                   res = res,
                   qgis.folder = "C:/Program Files/QGIS 3.4"
                   )
 }
 if(produce.studystack ) {
     envpreparator( buffergeo = st_read("./raw/maps/area_estudo/area_estudo_SIRGAS2000_UTM22S.shp"),
-               tempdir   =   paste0(experiment.folder, "/maps derived/studyarea"),
+               tempdir   =   paste0(experiment.folder, "/mapsderived/studyarea"),
                finalrds  = "experiment003map.rds",
                res=res,
                overwrite.gb = TRUE,
@@ -69,21 +69,21 @@ if(produce.studystack ) {
 )
 }
 if(produce.arima) {
-    ARIMAfitter(infile  = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
-               outfile = paste0(experiment.folder, "/data derived/mov.track.rds") 
+    ARIMAfitter(infile  = paste0(experiment.folder, "/dataderived/pardas_tiete_all_individuals.gpkg"),
+               outfile = paste0(experiment.folder, "/dataderived/mov.track.rds") 
     )
 }
 if(produce.models) {
-    ssfer(data = paste0(experiment.folder, "/data derived/mov.track.rds"),
-          tempdir = paste0(experiment.folder, "/maps derived/observedstack"),
-          outfile = paste0(experiment.folder, "/data derived/bestmodels.rds") )
+    ssfer(data = paste0(experiment.folder, "/dataderived/mov.track.rds"),
+          tempdir = paste0(experiment.folder, "/mapsderived/observedstack"),
+          outfile = paste0(experiment.folder, "/dataderived/bestmodels.rds") )
 }
 
 
 if(produce.predictions) {
-    predictor(models = paste0(experiment.folder, "/data derived/bestmodels.rds"),
-              tempdir = paste0(experiment.folder, "/maps derived/studyarea"),
-              outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions"),
+    predictor(models = paste0(experiment.folder, "/dataderived/bestmodels.rds"),
+              tempdir = paste0(experiment.folder, "/mapsderived/studyarea"),
+              outfolder = paste0(experiment.folder, "/mapsderived/qualitypredictions"),
               qgis.folder  = "C:/Program Files/QGIS 3.4",
               overwrite = TRUE
     )

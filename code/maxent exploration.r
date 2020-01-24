@@ -14,9 +14,9 @@
 
 
 options(java.parameters = "-Xmx1g" )
-data = paste0(experiment.folder, "/data derived/mov.track.rds")
-tempdir = paste0(experiment.folder, "/maps derived/observedstack")
-outfile = paste0(experiment.folder, "/data derived/bestmodels.rds")
+data = paste0(experiment.folder, "/dataderived/mov.track.rds")
+tempdir = paste0(experiment.folder, "/mapsderived/observedstack")
+outfile = paste0(experiment.folder, "/dataderived/bestmodels.rds")
 
 
 ## Read values
@@ -48,7 +48,7 @@ absence.testquali  <- predict(model, as.data.frame(raster::extract(mapstack, abs
 auc.test <- evaluate(presence.testquali,absence.testquali) # AUC of 0.9144! Sounds too good to be true I will do manual checking below.
 print(auc.test)
 boxplot(auc.test)
-saveRDS(auc.test, file = paste0(experiment.folder, "/data derived/experiment.maxent.rds"))
+saveRDS(auc.test, file = paste0(experiment.folder, "/dataderived/experiment.maxent.rds"))
 # Manual checking of AUC (too good to be true)
 
 

@@ -8,8 +8,8 @@ library(lubridate)
 library(openxlsx)
 library(dplyr)
 
-locs <- st_read("./experiment 001/data derived/pardas_tiete_all_individuals.gpkg")
-metadata<- read.csv2("./experiment 001/data derived/modifiedlocs/meta_data.csv")
+locs <- st_read("./experiment 001/dataderived/pardas_tiete_all_individuals.gpkg")
+metadata<- read.csv2("./experiment 001/dataderived/modifiedlocs/meta_data.csv")
 ## Figure 1: Period of collar activity from all the animals
 ## (data from December/2019)
 ggplot(locs,aes(x=timestamp, y=Name,col=Name)) + geom_point() +theme_bw() +xlab("tempo")+ylab("Nome do Animal")

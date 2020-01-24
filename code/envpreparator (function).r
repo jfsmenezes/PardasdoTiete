@@ -21,8 +21,8 @@ envpreparator <- function(buffergeo, tempdir="./maps", finalrds, res=30, overwri
 
 #debug: 
 # qgis.folder <- "C:/Program Files/QGIS 3.4"
-# tempdir <- "./test/maps derived"
-# finalfolder <- "./test/maps derived" 
+# tempdir <- "./test/mapsderived"
+# finalfolder <- "./test/mapsderived" 
 # overwrite.gb <- FALSE
 # res=2500
 # finalrds = "observedstack.rds"
@@ -34,7 +34,7 @@ Sys.setenv(PROJ_LIB  = paste0(qgis.folder, "\\share\\proj"))
 baseproj   <- "+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs" 
 
 #debug:
-# buffergeo <- st_read("D:/Trabalho/pardas do tiete/PardasdoTiete/test/data derived/pardas_tiete_all_individuals.gpkg")
+# buffergeo <- st_read("D:/Trabalho/pardas do tiete/PardasdoTiete/test/dataderived/pardas_tiete_all_individuals.gpkg")
 # buffergeo <- st_transform(buffergeo, crs=baseproj) %>% st_buffer(20000) %>% st_union()
 
 studyarea  <- buffergeo
