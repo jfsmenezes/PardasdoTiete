@@ -86,5 +86,5 @@ if(produce.predictions) {
               outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions"),
               qgis.folder  = "C:/Program Files/QGIS 3.4",
               overwrite = TRUE
-
+    )
 }
