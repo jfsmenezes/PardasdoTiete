@@ -82,8 +82,8 @@ for(i in 1:length(inds)) {
   
     # based on that model update dispersal column accordingly
     if(mod.opt == "resident")       dailypos.ind$disp  <- "residency"
-    if(mod.opt == "departure")      dailypos.ind$disp  <- ifelse(dailypos.ind$dayrank < setl.day, "dispersal","residency")
-    if(mod.opt == "settling")       dailypos.ind$disp  <- ifelse(dailypos.ind$dayrank < dep.day,  "residency","dispersal")
+    if(mod.opt == "settling")      dailypos.ind$disp  <- ifelse(dailypos.ind$dayrank < setl.day, "dispersal","residency")
+    if(mod.opt == "departure")       dailypos.ind$disp  <- ifelse(dailypos.ind$dayrank < dep.day,  "residency","dispersal")
     if(mod.opt == "depart-settle")  dailypos.ind$disp  <- ifelse( (dailypos.ind$dayrank < dep.day) | (dailypos.ind$dayrank > setl.day),  "residency","dispersal")
 
     holder[[i]] <- dailypos.ind
@@ -120,26 +120,26 @@ ll.finddate <- function(cp, Time, X, Y,
   
   if(event == "settling" | event == "departure") {
     fits <- list(
-      X.fit1 = tryCatch( arima(X[Time < cp[1]], order = order1, method = method.arima, ...),   error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-      X.fit2 = tryCatch( arima(X[Time >= cp[1]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-      Y.fit1 = tryCatch( arima(Y[Time < cp[1]], order = order1, method = method.arima,  ...),  error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-      Y.fit2 = tryCatch( arima(Y[Time >= cp[1]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) 
+      X.fit1 = tryCatch( arima(X[Time < cp[1]], order = order1, method = method.arima, optim.control=list(maxit=10000), ...),   error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+      X.fit2 = tryCatch( arima(X[Time >= cp[1]], order = order2, method = method.arima,  optim.control=list(maxit=10000),...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+      Y.fit1 = tryCatch( arima(Y[Time < cp[1]], order = order1, method = method.arima,  optim.control=list(maxit=10000),...),  error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+      Y.fit2 = tryCatch( arima(Y[Time >= cp[1]], order = order2, method = method.arima, optim.control=list(maxit=10000), ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) 
       )
   } else {
     if(event == "depart-settle") {
       fits <- list(
-        X.fit1 = tryCatch( arima(X[Time < cp[1]], order = order1, method = method.arima,  ...),                 error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-        X.fit2 = tryCatch( arima(X[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-        X.fit3 = tryCatch( arima(X[Time >= cp[2]], order = order3, method = method.arima,  ...),                error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-        Y.fit1 = tryCatch( arima(Y[Time < cp[1]], order = order1, method = method.arima,  ...),                 error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-        Y.fit2 = tryCatch( arima(Y[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-        Y.fit3 = tryCatch( arima(Y[Time >= cp[2]], order = order3, method = method.arima,  ...),                error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))})
+        X.fit1 = tryCatch( arima(X[Time < cp[1]], order = order1, method = method.arima, optim.control=list(maxit=10000), ...),                 error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        X.fit2 = tryCatch( arima(X[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima, optim.control=list(maxit=10000), ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        X.fit3 = tryCatch( arima(X[Time >= cp[2]], order = order3, method = method.arima, optim.control=list(maxit=10000), ...),                error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        Y.fit1 = tryCatch( arima(Y[Time < cp[1]], order = order1, method = method.arima, optim.control=list(maxit=10000), ...),                 error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        Y.fit2 = tryCatch( arima(Y[Time >= cp[1] & Time < cp[2]], order = order2, method = method.arima, optim.control=list(maxit=10000), ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+        Y.fit3 = tryCatch( arima(Y[Time >= cp[2]], order = order3, method = method.arima, optim.control=list(maxit=10000), ...),                error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))})
         )
     } else {
       if(event == 'resident' | event == 'dispersing') {
         fits <- list(
-          X.fit1 = tryCatch( arima(X, order = order1, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
-          Y.fit1 = tryCatch( arima(Y, order = order1, method = method.arima,  ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) 
+          X.fit1 = tryCatch( arima(X, order = order1, method = method.arima, optim.control=list(maxit=10000), ...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) ,
+          Y.fit1 = tryCatch( arima(Y, order = order1, method = method.arima,  optim.control=list(maxit=10000),...), error=function(e){cat("ERROR :",conditionMessage(e), "\n"); return(list(loglik = -Inf))}) 
           )
       }
     }
@@ -160,3 +160,8 @@ findSettlingDate <- function(Time, X, Y, ...)
 findDepartureDate <- function(Time, X, Y, ...)
   optimize(ll.finddate, Time= Time, X = X, Y = Y, maximum = TRUE, 
            lower = min(Time), upper = max(Time), event = "departure", ...)$maximum
+
+
+
+
+arima(dailypos.ind$X, order=c(1,0,0),optim.control = list(trace=2,maxit=10000))

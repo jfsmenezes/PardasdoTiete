@@ -88,3 +88,5 @@ if(produce.predictions) {
               overwrite = TRUE
 
 }
+
+plot(test$x_[test$Name=="Piloto"],test$y_[test$Name=="Piloto"],col=factor(test$disp[test$Name=="Piloto"]),)
