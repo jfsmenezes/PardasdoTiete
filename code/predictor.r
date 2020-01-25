@@ -7,8 +7,9 @@ predictor <- function(models, tempdir, outfolder, qgis.folder, overwrite = FALSE
 set_env(qgis.folder)
 
 # Load best model object with best models for each animal
+# Also removes accents from the name since GRASS r.mapcalc cannot handle it
 bestmodels <- readRDS(models)
-
+bestmodels$Name <- stri_trans_general(as.character(bestmodels$Name), "latin-ascii")
 # Load mapstack with pointers to each file
 mapstack  <- stack(list.files(tempdir,pattern="tif$",full.names=T))
 
@@ -16,14 +17,14 @@ mapstack  <- stack(list.files(tempdir,pattern="tif$",full.names=T))
 
 for(a in 1:nrow(bestmodels)) {
      #For debug:
-     ext=extent(469723,470000,-1140213,-1131000)
-
+     #ext=extent(469723,470000,-1140213,-1131000)
+     ext = extent(mapstack)
      # get the first step_id_ for each individual from their models (it does not matter which I take)
      stepid <- bestmodels$fit[[1]]$model$model[1,"strata(step_id_)"] %>% as.character %>% sub("step_id_=","",.) %>% as.numeric
     
      # run the predictions
      # P.S: with na.rm=T predict will eliminate rows whenever there is a cell with NA or NaN, even if this cell is in a layer that is not part of the model.
-     preds <-predict(object = mapstack, 
+     predict(object = mapstack, 
              model  = bestmodels$fit[[2]]$model,
              const  = data.frame(step_id_=stepid),
              type   = "risk",
@@ -43,11 +44,11 @@ for(a in 1:nrow(bestmodels)) {
     
 }
   # Store filename
-  predholder <- list.files(outfolder,pattern="qualityexp_",full.names=T)
+  predholder <- list.files(outfolder,pattern="qualityexp_.*.tif$",full.names=T)
   
   # Take average of all animals quality predictions
   expr <- paste0("meanquality=","(",paste(paste0("qualityexp_",bestmodels$Name),collapse="+"),")","/", length(bestmodels$Name))
-  avgquality <- run_qgis("grass7:mapcalc", maps = normalizePath(predholder), expression = expr, output_dir = outfolder )
+  avgquality <- run_qgis("grass7:r.mapcalc", maps = normalizePath(predholder), expression = expr, output_dir = outfolder )
 
 }
 

@@ -84,7 +84,6 @@ if(produce.predictions) {
     predictor(models = paste0(experiment.folder, "/dataderived/bestmodels.rds"),
               tempdir = paste0(experiment.folder, "/mapsderived/studyarea"),
               outfolder = paste0(experiment.folder, "/mapsderived/qualitypredictions"),
-              qgis.folder  = "C:/Program Files/QGIS 3.4",
-              overwrite = TRUE
+              qgis.folder  = "C:/Program Files/QGIS 3.4"
     )
 }
