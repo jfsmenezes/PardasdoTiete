@@ -13,6 +13,7 @@
 
 
 # Load dependencies
+options(java.parameters = "-Xmx1g" )
 library(raster)
 library(gdalUtils)
 library(dismo)
@@ -24,10 +25,8 @@ library(sf)
 library(parallel)
 library(amt)
 library(stringi)
-#library(moveHMM) # conflicts with RQGIS for some unknown reason. However it will soon be replaced by the ARIMA
-# so I'm not very concerned
-# Also conflicts with openxlsx
 
+# TODO: check for convergence issues in ARIMA fitter (LAPACK matrix is exactly singular)
 
 
 source("./code/data importer.r")
@@ -40,51 +39,51 @@ source("./code/acessory functions.r")
 ## TODO: Add log_dist_cities to envpreparator
 
 
-experiment.folder <- "./experiment 003"
+experiment.folder <- "./experiment003"
 res<-30
 
 
-## First check for the presence of files in the current experiment folder.
-hasprediction <- file.exists(paste0(experiment.folder,"/maps derived/qualitypredictions/qualityexpmean.sdat"))
-hasstudystack <- list.files(paste0(experiment.folder,"/maps derived/studyarea/"), pattern="RData") > 0
-hasmodels     <- file.exists(paste0(experiment.folder, "/data derived/bestmodels.RData"))
-hasHMMdata    <- file.exists(paste0(experiment.folder, "/data derived/movcleaned.RData"))
-hasgpkg       <- file.exists(paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"))
+## add which values to calculate
+produce.gpkg        <- TRUE
+produce.studystack  <- TRUE
+produce.arima       <- TRUE
+produce.models      <- TRUE
+produce.predictions <- TRUE
 
-if(!hasgpkg) { 
-    data.importer(derivdir   = paste0(experiment.folder,"/data derived"),
+
+if(produce.gpkg) { 
+    data.importer(derivdir   = paste0(experiment.folder,"/dataderived"),
                   rawdir     = paste0("./raw/data 17.12.19"), 
-                  tempdir    = paste0(experiment.folder,"/maps derived/observedstack"),
+                  tempdir    = paste0(experiment.folder,"/mapsderived/observedstack"),
                   res = res,
                   qgis.folder = "C:/Program Files/QGIS 3.4"
                   )
 }
-
-if(!hasHMMdata) {
-    ARIMAfitter(infile  = paste0(experiment.folder, "/data derived/pardas_tiete_all_individuals.gpkg"),
-               outfile = paste0(experiment.folder, "/data derived/mov.track.rds") 
-    )
-}
-if(!hasmodels) {
-    ssfer(data = paste0(experiment.folder, "/data derived/mov.track.rds"),
-          tempdir = paste0(experiment.folder, "/maps derived/observedstack"),
-          outfile = paste0(experiment.folder, "/data derived/bestmodels.rds") )
-}
-
-if(!hasstudystack) {
+if(produce.studystack ) {
     envpreparator( buffergeo = st_read("./raw/maps/area_estudo/area_estudo_SIRGAS2000_UTM22S.shp"),
-               tempdir   =   paste0(experiment.folder, "/maps derived/studyarea"),
+               tempdir   =   paste0(experiment.folder, "/mapsderived/studyarea"),
                finalrds  = "experiment003map.rds",
                res=res,
                overwrite.gb = TRUE,
                qgis.folder  = "C:/Program Files/QGIS 3.4"
 )
 }
-if(!hasprediction) {
-    predictor(models = paste0(experiment.folder, "/data derived/bestmodels.rds"),
-              tempdir = paste0(experiment.folder, "/maps derived/studyarea"),
-              outfolder = paste0(experiment.folder, "/maps derived/qualitypredictions"),
-              qgis.folder  = "C:/Program Files/QGIS 3.4",
-              overwrite = TRUE
+if(produce.arima) {
+    ARIMAfitter(infile  = paste0(experiment.folder, "/dataderived/pardas_tiete_all_individuals.gpkg"),
+               outfile = paste0(experiment.folder, "/dataderived/mov.track.rds") 
+    )
+}
+if(produce.models) {
+    ssfer(data = paste0(experiment.folder, "/dataderived/mov.track.rds"),
+          tempdir = paste0(experiment.folder, "/mapsderived/observedstack"),
+          outfile = paste0(experiment.folder, "/dataderived/bestmodels.rds") )
+}
 
+
+if(produce.predictions) {
+    predictor(models = paste0(experiment.folder, "/dataderived/bestmodels.rds"),
+              tempdir = paste0(experiment.folder, "/mapsderived/studyarea"),
+              outfolder = paste0(experiment.folder, "/mapsderived/qualitypredictions"),
+              qgis.folder  = "C:/Program Files/QGIS 3.4"
+    )
 }

@@ -8,8 +8,8 @@ library(lubridate)
 library(openxlsx)
 library(dplyr)
 
-locs <- st_read("./experiment 001/data derived/pardas_tiete_all_individuals.gpkg")
-metadata<- read.csv2("./experiment 001/data derived/modifiedlocs/meta_data.csv")
+locs <- st_read("./experiment 001/dataderived/pardas_tiete_all_individuals.gpkg")
+metadata<- read.csv2("./experiment 001/dataderived/modifiedlocs/meta_data.csv")
 ## Figure 1: Period of collar activity from all the animals
 ## (data from December/2019)
 ggplot(locs,aes(x=timestamp, y=Name,col=Name)) + geom_point() +theme_bw() +xlab("tempo")+ylab("Nome do Animal")
@@ -46,7 +46,19 @@ plot(locs["Name"] %>% st_transform(crs=4326),pch=16,pal=gg_color_hue(6),add=T)
 legend("topright",legend=sort(unique(locs$Name)),fill=gg_color_hue(6))
 
 ## Figure 3: Individualized plot of animal trajectories.
-ggplot(locs,aes(x=Longitude,y=Latitude)) +geom_point()+ facet_wrap(~Name,scales="free") +theme_bw() +scale_x_continuous(labels=NULL) +scale_y_continuous(labels=NULL)
+locs.classes <- readRDS("./experiment003/dataderived/mov.track.rds")
+ggplot(locs.classes,aes(x=x_,y=y_,col=disp)) +
+  geom_point()+
+  facet_wrap(~Name,scales="free")+
+  theme_bw()+
+  scale_x_continuous(labels=NULL) +
+  scale_y_continuous(labels=NULL) +
+  scale_colour_discrete(labels = c("Dispersão","Residência"))+
+  labs(colour = "Comportamento",x="Longitude", y="Latitude")
+
+
+
+
 
 ## Figure 4: Plot of average distance from initial points per day, for each individual
 first.captures <- locs %>% group_by(Name) %>% arrange(timestamp) %>% slice(1) %>% arrange(ID)
@@ -80,9 +92,29 @@ write.xlsx(summ,file="./presentations/Relatorio trimestral 2019_12/table2.xlsx")
 
 
 
-# Figure 11: Prediction map based on data from September/2019
+# Figure 11: Prediction map 
 library(raster)
-predmap <- raster("C:\\Users\\jorge\\Documents\\AssociadoCNAP\\Projeto Pardas do Tiete\\maps\\low-resolution\\qualityexpmean.sdat")
-plot(predmap)
+library(sf)
+crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
 
+predmap <- raster("./experiment003/mapsderived/qualitypredictions/meanquality.tif")
+studyarea <- st_read("./raw/maps/area_estudo/area_estudo_SIRGAS2000_UTM22S.shp") %>% st_transform(crs=crs)
+plot(predmap,col = gray.colors(10, start = 0.3, end = 0.9, gamma = 2.2, alpha = NULL),axes=FALSE,box=FALSE)
+plot(studyarea$geometry,add=T,col=NA,lwd=2)
 
+# Figure 12: Prediction map averaged by municipality
+library(raster)
+library(sf)
+crs <- '+proj=aea +lat_1=-2 +lat_2=-22 +lat_0=-12 +lon_0=-54 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs'
+
+predmap <- raster("./experiment003/mapsderived/qualitypredictions/meanquality.tif")
+studyarea <- st_read("./raw/maps/area_estudo/area_estudo_SIRGAS2000_UTM22S.shp") %>% st_transform(crs=crs)
+boundaries<- readRDS("./raw/maps/limites politicos/base gdam nivel 2.rds") %>% st_transform(crs=crs)
+boundaries<- boundaries[boundaries$NAME_1=="São Paulo",]
+rel.boundaries <- st_intersection(boundaries,studyarea)
+rel.boundaries <- as_Spatial(st_zm(rel.boundaries))
+rel.boundaries <- extract(predmap,rel.boundaries,fun=mean,sp=T)
+rel.boundaries <- st_as_sf(rel.boundaries)
+plot(rel.boundaries["meanquality"],key.pos=1,main=NULL)
+values <- as.data.frame(rel.boundaries[,c("NAME_2","meanquality")])[,-3]
+values <- head(values[order(values$meanquality,decreasing=T),],10)

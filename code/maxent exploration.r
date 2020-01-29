@@ -14,13 +14,14 @@
 
 
 options(java.parameters = "-Xmx1g" )
-data = paste0(experiment.folder, "/data derived/mov.track.rds")
-tempdir = paste0(experiment.folder, "/maps derived/observedstack")
-outfile = paste0(experiment.folder, "/data derived/bestmodels.rds")
+data = paste0(experiment.folder, "/dataderived/mov.track.rds")
+tempdir = paste0(experiment.folder, "/mapsderived/observedstack")
+outfile = paste0(experiment.folder, "/dataderived/bestmodels.rds")
 
 
 ## Read values
 mov.track <- readRDS(data)
+mov.track$test <- sample(0:1,nrow(mov.track), prob =c(0.8,0.2), replace=T)
 mapstack  <- stack(list.files(tempdir,pattern="tif$",full.names=T))
 
 #Convert locations to spatial Points
@@ -35,8 +36,20 @@ presences <- SpatialPoints(mov.track[,1:2],proj4string=attr(mov.track,"crs_"))
 mask <- subs(mapstack$landuse,data.frame(0,NA),subsWithNA=FALSE)
 
 absences <- randomPoints(mask, 10000,p= presences)
+absences.test <- sample(0:1,nrow(absences), prob =c(0.8,0.2), replace=T)
+
+# Run maxent model
+model <- maxent(mapstack, presences[mov.track$test==0,], absences = absences[absences.test==0,], factors="landuse")
+
+# Extract values for test points and use predict to find the expected values
+
+presence.testquali <- predict(model, as.data.frame(raster::extract(mapstack, presences[mov.track$test==1,]))  )
+absence.testquali  <- predict(model, as.data.frame(raster::extract(mapstack, absences[absences.test==1,]))  )
+auc.test <- evaluate(presence.testquali,absence.testquali) # AUC of 0.9144! Sounds too good to be true I will do manual checking below.
+print(auc.test)
+boxplot(auc.test)
+saveRDS(auc.test, file = paste0(experiment.folder, "/dataderived/experiment.maxent.rds"))
+# Manual checking of AUC (too good to be true)
 
 
-# Run maxent code
-model <- maxent(mas, presences, absences)
 
